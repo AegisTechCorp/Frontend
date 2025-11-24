@@ -1,15 +1,52 @@
 import React, { useState } from "react"
-import { Link } from "react-router-dom"
-import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint, AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Login attempt:", { email })
+    setError("")
+    
+    if (!email || !password) {
+      setError("Veuillez remplir tous les champs")
+      return
+    }
+    
+    setIsLoading(true)
+    
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      
+      const mockUser = {
+        id: "mock-user-id",
+        email: email,
+        firstName: "Jean",
+        lastName: "Dupont",
+        birthDate: "1990-01-01",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      
+      const mockToken = "mock-jwt-token-" + Date.now()
+      
+      localStorage.setItem('aegis_auth_token', mockToken)
+      localStorage.setItem('aegis_user', JSON.stringify(mockUser))
+      
+      console.log("Connexion réussie:", mockUser)
+      
+      navigate("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -104,16 +141,31 @@ export default function LoginPage() {
               </Link>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 group"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Se connecter
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                <>
+                  Se connecter
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
           </form>
-
-      
 
           {/* Sign up link */}
           <p className="mt-6 text-center text-slate-600">
