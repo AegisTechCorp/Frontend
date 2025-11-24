@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { Shield, Lock, FileText, Stethoscope, Heart, Activity, ChevronRight, Check } from "lucide-react"
 
 export default function AegisLanding() {
@@ -54,7 +55,7 @@ export default function AegisLanding() {
               Aegis
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
               Fonctionnalités
             </a>
@@ -64,9 +65,12 @@ export default function AegisLanding() {
             <a href="#about" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
               À propos
             </a>
-            <button className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all">
+            <Link to="/register" className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all">
               Commencer
-            </button>
+            </Link>
+            <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
+              Tableau de bord
+            </Link>
           </div>
         </div>
       </nav>
@@ -105,10 +109,10 @@ export default function AegisLanding() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2">
+                <Link to="/register" className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2">
                   Créer mon dossier
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
                 <button className="px-8 py-4 bg-white text-slate-700 rounded-2xl font-semibold text-lg hover:shadow-xl transition-all border-2 border-slate-200">
                   En savoir plus
                 </button>
@@ -316,42 +320,15 @@ export default function AegisLanding() {
           <p className="text-xl text-blue-100 mb-10 leading-relaxed">
             Rejoignez les milliers d'utilisateurs qui font confiance à Aegis pour protéger leurs données médicales.
           </p>
-          <button className="px-10 py-5 bg-white text-blue-600 rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3">
+          <Link to="/register" className="px-10 py-5 bg-white text-blue-600 rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3">
             Créer mon compte gratuitement
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </Link>
           <p className="text-sm text-blue-100 mt-6">Gratuit pendant 30 jours • Sans carte bancaire</p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12 px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-cyan-400" />
-              <span className="text-xl font-bold">Aegis</span>
-            </div>
-            <div className="flex gap-8 text-sm text-slate-400">
-              <a href="#" className="hover:text-white transition-colors">
-                Mentions légales
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                Confidentialité
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                Conditions
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                Contact
-              </a>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-            © 2024 Aegis. Tous droits réservés. Votre santé, notre priorité.
-          </div>
-        </div>
-      </footer>
+
 
       <style>{`
         @keyframes fadeInUp {
