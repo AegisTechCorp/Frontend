@@ -1,0 +1,23 @@
+name: CI Frontend React/Vite
+on: [push, pull_request]
+jobs:
+  typescript-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with: 
+          node-version: '20'
+          cache: 'npm' 
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint Check
+        run: npm run lint 
+
+      - name: Run Build (Compilation Check)
+        run: npm run build 
