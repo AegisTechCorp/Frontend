@@ -1,8 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Landing from './components/landing'
 import LoginPage from './pages/Login'
-import DashboardPage from './pages/Dashboard'
-import UnlockFolderPage from './pages/UnlockFolder'
+import RegisterPage from './pages/Register'
 
 function App() {
   return (
@@ -10,8 +9,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/unlock-folder" element={<UnlockFolderPage />} />
+
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </Router>
   )
