@@ -11,14 +11,45 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Basic validation
     if (password !== confirmPassword) {
       alert("Les mots de passe ne correspondent pas.")
       return
     }
-    console.log("Registration attempt:", { firstName, lastName, email })
+
+    try {
+      const response = await fetch('http://localhost:3000/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important pour les cookies
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors de l\'inscription')
+      }
+
+      // Succès : stocker le token et rediriger
+      console.log('Inscription réussie:', data)
+      localStorage.setItem('accessToken', data.accessToken)
+
+      // Rediriger vers le dashboard
+      window.location.href = '/dashboard'
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de l\'inscription')
+      console.error('Registration error:', error)
+    }
   }
 
   return (
