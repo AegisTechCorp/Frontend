@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import {
   Shield,
   Lock,
@@ -23,108 +23,194 @@ import {
   X,
   FolderPlus,
   Folder,
-  FileSpreadsheet,
   Camera,
   Settings,
   ChevronDown,
+  Loader2,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react"
+import {
+  getDashboardStats,
+  getSecureFolders,
+  getDocuments,
+  type Document,
+  type SecureFolder,
+  type DashboardStats,
+} from "../api/dashboardApi"
+import { logoutUser } from "../api/authApi"
+import AuthService from "../services/authService"
 
-type Document = {
-  id: string
-  title: string
-  type: "exam" | "prescription" | "imaging" | "allergy"
-  date: string
-  doctor: string
-  size: string
-  folderId?: string
-}
-
-type SecureFolder = {
-  id: string
-  name: string
-  icon: LucideIcon
-  color: string
-  documentCount: number
-  isLocked: boolean
-  unlockMethod: "pin" | "biometric"
+// Mapping des icônes
+const iconMap: Record<string, LucideIcon> = {
+  Stethoscope,
+  Pill,
+  Camera,
+  FileText,
+  Folder,
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [showUserPopover, setShowUserPopover] = useState(false)
+  
+  // États pour les données
+  const [folders, setFolders] = useState<SecureFolder[]>([])
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Obtenir les infos utilisateur
+  const currentUser = AuthService.getUser()
 
-  const [folders, setFolders] = useState<SecureFolder[]>([
-    {
-      id: "1",
-      name: "Analyses médicales",
-      icon: Stethoscope,
-      color: "from-blue-500 to-cyan-500",
-      documentCount: 8,
-      isLocked: true,
-      unlockMethod: "pin",
-    },
-    {
-      id: "2",
-      name: "Ordonnances",
-      icon: Pill,
-      color: "from-green-500 to-emerald-500",
-      documentCount: 12,
-      isLocked: true,
-      unlockMethod: "biometric",
-    },
-    {
-      id: "3",
-      name: "Imageries",
-      icon: Camera,
-      color: "from-purple-500 to-pink-500",
-      documentCount: 5,
-      isLocked: true,
-      unlockMethod: "pin",
-    },
-  ])
+  useEffect(() => {
+    setFolders([
+      {
+        id: "1",
+        name: "Analyses médicales",
+        icon: "Stethoscope",
+        color: "from-blue-500 to-cyan-500",
+        documentCount: 8,
+        isLocked: true,
+        unlockMethod: "pin" as const,
+        userId: "user-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "2",
+        name: "Ordonnances",
+        icon: "Pill",
+        color: "from-green-500 to-emerald-500",
+        documentCount: 12,
+        isLocked: true,
+        unlockMethod: "biometric" as const,
+        userId: "user-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "3",
+        name: "Imageries",
+        icon: "Camera",
+        color: "from-purple-500 to-pink-500",
+        documentCount: 5,
+        isLocked: true,
+        unlockMethod: "pin" as const,
+        userId: "user-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ])
+    
+    setDocuments([
+      {
+        id: "1",
+        title: "Analyses sanguines complètes",
+        type: "exam",
+        date: "2024-01-15",
+        doctor: "Dr. Martin",
+        size: "2.3 MB",
+        folderId: "1",
+        filePath: "/uploads/doc1.pdf",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "2",
+        title: "IRM lombaire",
+        type: "imaging",
+        date: "2024-01-12",
+        doctor: "Dr. Lefebvre",
+        size: "15.8 MB",
+        folderId: "3",
+        filePath: "/uploads/doc2.pdf",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "3",
+        title: "Ordonnance antibiotiques",
+        type: "prescription",
+        date: "2024-01-10",
+        doctor: "Dr. Martin",
+        size: "0.5 MB",
+        folderId: "2",
+        filePath: "/uploads/doc3.pdf",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "4",
+        title: "Allergie pénicilline",
+        type: "allergy",
+        date: "2023-12-05",
+        doctor: "Dr. Dubois",
+        size: "0.3 MB",
+        filePath: "/uploads/doc4.pdf",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ])
+    
+    setStats({
+      totalDocuments: 25,
+      totalFolders: 3,
+      totalPrescriptions: 12,
+      totalExams: 8,
+    })
+    
+    setLoading(false)
+  }, [])
 
-  const documents: Document[] = [
-    {
-      id: "1",
-      title: "Analyses sanguines complètes",
-      type: "exam",
-      date: "2024-01-15",
-      doctor: "Dr. Martin",
-      size: "2.3 MB",
-      folderId: "1",
-    },
-    {
-      id: "2",
-      title: "IRM lombaire",
-      type: "imaging",
-      date: "2024-01-12",
-      doctor: "Dr. Lefebvre",
-      size: "15.8 MB",
-      folderId: "3",
-    },
-    {
-      id: "3",
-      title: "Ordonnance antibiotiques",
-      type: "prescription",
-      date: "2024-01-10",
-      doctor: "Dr. Martin",
-      size: "0.5 MB",
-      folderId: "2",
-    },
-    {
-      id: "4",
-      title: "Allergie pénicilline",
-      type: "allergy",
-      date: "2023-12-05",
-      doctor: "Dr. Dubois",
-      size: "0.3 MB",
-    },
-  ]
+  // Fonction pour charger toutes les données du dashboard
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Charger les données en parallèle
+      const [statsData, foldersData, documentsData] = await Promise.all([
+        getDashboardStats(),
+        getSecureFolders(),
+        getDocuments(),
+      ])
+
+      setStats(statsData)
+      setFolders(foldersData)
+      setDocuments(documentsData)
+    } catch (err) {
+      console.error('Erreur lors du chargement:', err)
+      setError(err instanceof Error ? err.message : 'Erreur de chargement')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+  }, [searchQuery, selectedFilter])
+
+  const handleLogout = () => {
+    logoutUser()
+    navigate('/login')
+  }
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return
+    setDocuments(documents.filter(doc => doc.id !== documentId))
+  }
+
+  const handleDownloadDocument = async () => {
+    alert('Téléchargement du document (fonctionnalité disponible avec le backend)')
+  }
+
+
 
   const getDocumentIcon = (type: string) => {
     switch (type) {
@@ -171,16 +257,47 @@ export default function DashboardPage() {
     }
   }
 
-  const stats = [
-    { label: "Documents", value: "25", icon: FileText, color: "from-blue-500 to-cyan-500" },
-    { label: "Dossiers", value: String(folders.length), icon: Folder, color: "from-purple-500 to-pink-500" },
-    { label: "Ordonnances", value: "12", icon: Pill, color: "from-green-500 to-emerald-500" },
-    { label: "Examens", value: "8", icon: Stethoscope, color: "from-cyan-500 to-blue-500" },
+  const displayStats = [
+    { label: "Documents", value: String(stats?.totalDocuments || 0), icon: FileText, color: "from-blue-500 to-cyan-500" },
+    { label: "Dossiers", value: String(stats?.totalFolders || 0), icon: Folder, color: "from-purple-500 to-pink-500" },
+    { label: "Ordonnances", value: String(stats?.totalPrescriptions || 0), icon: Pill, color: "from-green-500 to-emerald-500" },
+    { label: "Examens", value: String(stats?.totalExams || 0), icon: Stethoscope, color: "from-cyan-500 to-blue-500" },
   ]
 
   const filteredDocuments = selectedFolder
     ? documents.filter((doc) => doc.folderId === selectedFolder)
     : documents
+
+  // État de chargement
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 font-medium">Chargement de votre espace...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // État d'erreur
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl border border-red-200">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2 text-center">Erreur de chargement</h2>
+          <p className="text-slate-600 text-center mb-6">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
@@ -211,8 +328,10 @@ export default function DashboardPage() {
                   className="flex items-center gap-3 pl-6 border-l border-slate-200 hover:bg-slate-50 py-2 px-3 rounded-lg transition-colors"
                 >
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900">Jean Dupont</p>
-                    <p className="text-xs text-slate-500">jean.dupont@email.fr</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {currentUser?.firstName} {currentUser?.lastName}
+                    </p>
+                    <p className="text-xs text-slate-500">{currentUser?.email}</p>
                   </div>
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
@@ -235,8 +354,10 @@ export default function DashboardPage() {
                             <User className="w-8 h-8" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-lg">Jean Dupont</h3>
-                            <p className="text-blue-100 text-sm">jean.dupont@email.fr</p>
+                            <h3 className="font-bold text-lg">
+                              {currentUser?.firstName} {currentUser?.lastName}
+                            </h3>
+                            <p className="text-blue-100 text-sm">{currentUser?.email}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -279,7 +400,10 @@ export default function DashboardPage() {
 
                         <div className="h-px bg-slate-200 my-2" />
 
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors group">
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors group"
+                        >
                           <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center group-hover:bg-red-100 transition-colors">
                             <LogOut className="w-5 h-5" />
                           </div>
@@ -309,8 +433,10 @@ export default function DashboardPage() {
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Jean Dupont</p>
-                  <p className="text-xs text-slate-500">jean.dupont@email.fr</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {currentUser?.firstName} {currentUser?.lastName}
+                  </p>
+                  <p className="text-xs text-slate-500">{currentUser?.email}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -318,7 +444,10 @@ export default function DashboardPage() {
                   <Bell className="w-5 h-5" />
                   <span>Notifications</span>
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
                   <LogOut className="w-5 h-5" />
                   <span>Déconnexion</span>
                 </button>
@@ -332,13 +461,15 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
         {/* Welcome section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Bonjour, Jean 👋</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Bonjour, {currentUser?.firstName || 'Utilisateur'} 👋
+          </h1>
           <p className="text-slate-600">Gérez vos dossiers médicaux sécurisés</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, i) => (
+          {displayStats.map((stat, i) => (
             <div
               key={i}
               className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-all"
@@ -369,15 +500,17 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {folders.map((folder, i) => (
+            {folders.map((folder, i) => {
+              const FolderIcon = iconMap[folder.icon] || Folder
+              return (
               <button
                 key={folder.id}
                 onClick={() => {
                   if (selectedFolder === folder.id) {
                     setSelectedFolder(null)
                   } else {
-                    // En production, ouvrir le modal de déverrouillage
-                    setSelectedFolder(folder.id)
+                    // En production, rediriger vers la page de déverrouillage
+                    navigate(`/unlock-folder?id=${folder.id}`)
                   }
                 }}
                 className={`bg-white rounded-2xl p-6 border-2 ${
@@ -387,7 +520,7 @@ export default function DashboardPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className={`w-16 h-16 bg-gradient-to-br ${folder.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                    <folder.icon className="w-8 h-8 text-white" strokeWidth={2} />
+                    <FolderIcon className="w-8 h-8 text-white" strokeWidth={2} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Lock className="w-5 h-5 text-green-600" />
@@ -401,7 +534,7 @@ export default function DashboardPage() {
                 </h3>
                 <p className="text-sm text-slate-600">{folder.documentCount} documents</p>
               </button>
-            ))}
+            )})}
           </div>
         </div>
 
@@ -500,13 +633,25 @@ export default function DashboardPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => window.open(`/documents/${doc.id}`, '_blank')}
+                      className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Voir le document"
+                    >
                       <Eye className="w-5 h-5" />
                     </button>
-                    <button className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={handleDownloadDocument}
+                      className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Télécharger"
+                    >
                       <Download className="w-5 h-5" />
                     </button>
-                    <button className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer"
+                    >
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
