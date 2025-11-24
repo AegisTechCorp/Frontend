@@ -113,25 +113,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Biometric login */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-slate-500">ou continuez avec</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="mt-4 w-full flex items-center justify-center gap-3 py-3.5 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-slate-50 transition-all group"
-            >
-              <Fingerprint className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-colors" />
-              <span className="text-slate-700 font-medium">Empreinte digitale</span>
-            </button>
-          </div>
+      
 
           {/* Sign up link */}
           <p className="mt-6 text-center text-slate-600">

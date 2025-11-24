@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { Shield, Lock, FileText, Stethoscope, Heart, Activity, ChevronRight, Check } from "lucide-react"
 
 export default function AegisLanding() {
@@ -61,12 +62,12 @@ export default function AegisLanding() {
             <a href="#security" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
               Sécurité
             </a>
-            <a href="#about" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
-              À propos
-            </a>
-            <button className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all">
+            <Link to="/login" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
+              Connexion
+            </Link>
+            <Link to="/signup" className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all">
               Commencer
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -105,10 +106,10 @@ export default function AegisLanding() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2">
+                <Link to="/signup" className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2">
                   Créer mon dossier
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
                 <button className="px-8 py-4 bg-white text-slate-700 rounded-2xl font-semibold text-lg hover:shadow-xl transition-all border-2 border-slate-200">
                   En savoir plus
                 </button>
@@ -316,10 +317,10 @@ export default function AegisLanding() {
           <p className="text-xl text-blue-100 mb-10 leading-relaxed">
             Rejoignez les milliers d'utilisateurs qui font confiance à Aegis pour protéger leurs données médicales.
           </p>
-          <button className="px-10 py-5 bg-white text-blue-600 rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3">
+          <Link to="/signup" className="px-10 py-5 bg-white text-blue-600 rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3">
             Créer mon compte gratuitement
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </Link>
           <p className="text-sm text-blue-100 mt-6">Gratuit pendant 30 jours • Sans carte bancaire</p>
         </div>
       </section>
