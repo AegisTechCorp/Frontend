@@ -27,19 +27,26 @@ export interface SignupData {
   password: string
 }
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'
 
 class AuthService {
   private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      credentials: 'include', // Pour les cookies HttpOnly
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
+      }),
     })
 
     if (!response.ok) {
@@ -47,9 +54,10 @@ class AuthService {
       throw new Error(error.message || 'Erreur lors de l\'inscription')
     }
 
-    const result: AuthResponse = await response.json()
-    this.setAuth(result.token, result.user)
-    return result
+    const result = await response.json()
+    // Le backend retourne { user, accessToken, refreshToken }
+    this.setAuth(result.accessToken, result.user)
+    return { token: result.accessToken, user: result.user }
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -58,6 +66,7 @@ class AuthService {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Pour les cookies HttpOnly
       body: JSON.stringify(credentials),
     })
 
@@ -66,9 +75,10 @@ class AuthService {
       throw new Error(error.message || 'Erreur lors de la connexion')
     }
 
-    const result: AuthResponse = await response.json()
-    this.setAuth(result.token, result.user)
-    return result
+    const result = await response.json()
+    // Le backend retourne { user, accessToken, refreshToken }
+    this.setAuth(result.accessToken, result.user)
+    return { token: result.accessToken, user: result.user }
   }
 
   static logout(): void {
@@ -116,11 +126,9 @@ class AuthService {
     if (!token) return false
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      })
-      return response.ok
+      // Pour l'instant, on vérifie simplement si le token existe
+      // Le backend n'a pas encore d'endpoint /verify
+      return true
     } catch {
       return false
     }
@@ -129,16 +137,19 @@ class AuthService {
   static async refreshToken(): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important pour envoyer le refresh token dans les cookies
     })
 
     if (!response.ok) {
       throw new Error('Erreur lors du rafraîchissement du token')
     }
 
-    const { token } = await response.json()
-    localStorage.setItem(this.TOKEN_KEY, token)
-    return token
+    const result = await response.json()
+    localStorage.setItem(this.TOKEN_KEY, result.accessToken)
+    return result.accessToken
   }
 }
 

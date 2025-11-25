@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint, AlertCircle } from "lucide-react"
+import AuthService from "../services/authService"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -13,37 +14,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
     if (!email || !password) {
       setError("Veuillez remplir tous les champs")
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
-      const mockUser = {
-        id: "mock-user-id",
-        email: email,
-        firstName: "Jean",
-        lastName: "Dupont",
-        birthDate: "1990-01-01",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      
-      const mockToken = "mock-jwt-token-" + Date.now()
-      
-      localStorage.setItem('aegis_auth_token', mockToken)
-      localStorage.setItem('aegis_user', JSON.stringify(mockUser))
-      
-      console.log("Connexion réussie:", mockUser)
-      
+      // Appel à l'API backend via AuthService
+      const response = await AuthService.login({
+        email,
+        password,
+      })
+
+      console.log("Connexion réussie:", response.user)
+
+      // Redirection vers le dashboard
       navigate("/dashboard")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue")
+      setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
     } finally {
       setIsLoading(false)
     }

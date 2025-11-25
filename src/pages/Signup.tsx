@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, User, Calendar, Check, AlertCircle } from "lucide-react"
+import AuthService from "../services/authService"
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -35,8 +36,8 @@ export default function SignupPage() {
       return false
     }
     
-    if (formData.password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères")
+    if (formData.password.length < 12) {
+      setError("Le mot de passe doit contenir au moins 12 caractères")
       return false
     }
     
@@ -71,33 +72,26 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
     if (!validateForm()) {
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      const mockUser = {
-        id: "mock-user-id",
-        email: formData.email,
+      // Appel à l'API backend via AuthService
+      const response = await AuthService.signup({
         firstName: formData.firstName,
         lastName: formData.lastName,
+        email: formData.email,
         birthDate: formData.birthDate,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      
-      const mockToken = "mock-jwt-token-" + Date.now()
-      
-      localStorage.setItem('aegis_auth_token', mockToken)
-      localStorage.setItem('aegis_user', JSON.stringify(mockUser))
-      
-      console.log("Inscription réussie:", mockUser)
-      
+        password: formData.password,
+      })
+
+      console.log("Inscription réussie:", response.user)
+
+      // Redirection vers le dashboard
       navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
@@ -113,7 +107,7 @@ export default function SignupPage() {
 
   const passwordStrength = () => {
     let strength = 0
-    if (formData.password.length >= 8) strength++
+    if (formData.password.length >= 12) strength++
     if (/[A-Z]/.test(formData.password)) strength++
     if (/[0-9]/.test(formData.password)) strength++
     if (/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) strength++
@@ -335,7 +329,7 @@ export default function SignupPage() {
               <p className="text-sm font-semibold text-slate-700 mb-2">Votre mot de passe doit contenir :</p>
               <div className="space-y-1">
                 {[
-                  { text: "Au moins 8 caractères", valid: formData.password.length >= 8 },
+                  { text: "Au moins 12 caractères", valid: formData.password.length >= 12 },
                   { text: "Une lettre majuscule", valid: /[A-Z]/.test(formData.password) },
                   { text: "Un chiffre", valid: /[0-9]/.test(formData.password) },
                   { text: "Un caractère spécial", valid: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password) },
