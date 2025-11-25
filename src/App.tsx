@@ -13,21 +13,22 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route 
-          path="/dashboard" 
+        <Route path="/register" element={<SignupPage />} />
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/unlock-folder" 
+        <Route
+          path="/unlock-folder"
           element={
             <ProtectedRoute>
               <UnlockFolderPage />
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </Router>
