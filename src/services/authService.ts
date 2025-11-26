@@ -39,8 +39,6 @@ class AuthService {
   static async signup(data: SignupData): Promise<AuthResponse> {
     // Dériver les clés cryptographiques
     const masterKey = await deriveMasterKey(data.password, data.email)
-    const authKey = await deriveAuthKey(data.password, data.email)
-    const authHash = await hashAuthKey(authKey)
 
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',

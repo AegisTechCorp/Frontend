@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  Shield,
   Lock,
   FileText,
   Upload,
@@ -20,7 +19,6 @@ import {
   Stethoscope,
   Pill,
   Menu,
-  X,
   FolderPlus,
   Folder,
   Camera,
