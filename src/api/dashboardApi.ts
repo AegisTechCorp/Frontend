@@ -53,6 +53,12 @@ export type UploadDocumentData = {
   file: File
 }
 
+export type UnlockFolderResponse = {
+  success: boolean
+  error?: string
+  token?: string
+}
+
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const response = await fetch(`${API_BASE_URL}/medical-records/statistics`, {
@@ -110,7 +116,7 @@ export const deleteSecureFolder = async (_folderId: string) => {
   }
 }
 
-export const unlockFolderWithPin = async (_folderId: string, _pin: string) => {
+export const unlockFolderWithPin = async (_folderId: string, _pin: string): Promise<UnlockFolderResponse> => {
   // Fonctionnalité non disponible dans le backend actuel
   return {
     success: false,
@@ -118,7 +124,7 @@ export const unlockFolderWithPin = async (_folderId: string, _pin: string) => {
   }
 }
 
-export const unlockFolderWithBiometric = async (_folderId: string) => {
+export const unlockFolderWithBiometric = async (_folderId: string): Promise<UnlockFolderResponse> => {
   // Fonctionnalité non disponible dans le backend actuel
   return {
     success: false,

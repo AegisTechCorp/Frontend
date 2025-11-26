@@ -1,9 +1,5 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
+import React, { useState } from "react"
+import { Link } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint } from "lucide-react"
 
 export default function LoginPage() {
@@ -31,7 +27,7 @@ export default function LoginPage() {
       </div>
 
       {/* Logo top left */}
-      <Link href="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
         <div className="relative">
           <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
           <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
@@ -107,7 +103,7 @@ export default function LoginPage() {
                 <span className="text-slate-600">Se souvenir de moi</span>
               </label>
               <Link
-                href="/reset-password"
+                to="/reset-password"
                 className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
               >
                 Mot de passe oublié ?
@@ -142,7 +138,7 @@ export default function LoginPage() {
           {/* Sign up link */}
           <p className="text-center mt-8 text-slate-600">
             Pas encore de compte ?{" "}
-            <Link href="/signup" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+            <Link to="/signup" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
               Créer un compte
             </Link>
           </p>
