@@ -1,9 +1,5 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
+import React, { useState } from "react"
+import { Link } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, User, Calendar, Check } from "lucide-react"
 
 export default function SignupPage() {
@@ -43,7 +39,7 @@ export default function SignupPage() {
       </div>
 
       {/* Logo top left */}
-      <Link href="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
         <div className="relative">
           <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
           <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
@@ -223,11 +219,11 @@ export default function SignupPage() {
               />
               <span className="text-sm text-slate-600 leading-relaxed">
                 J'accepte les{" "}
-                <Link href="/terms" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+                <Link to="/terms" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
                   conditions d'utilisation
                 </Link>{" "}
                 et la{" "}
-                <Link href="/privacy" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+                <Link to="/privacy" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
                   politique de confidentialité
                 </Link>
               </span>
@@ -245,7 +241,7 @@ export default function SignupPage() {
           {/* Login link */}
           <p className="text-center mt-8 text-slate-600">
             Déjà un compte ?{" "}
-            <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+            <Link to="/login" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
               Se connecter
             </Link>
           </p>

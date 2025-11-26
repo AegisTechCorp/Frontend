@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import {
   Shield,
   Lock,
@@ -24,6 +24,7 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import React from "react"
 
 type Document = {
   id: string
@@ -135,7 +136,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-3">
               <div className="relative">
                 <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
                 <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />

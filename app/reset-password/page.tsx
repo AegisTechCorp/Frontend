@@ -1,9 +1,5 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
+import React, { useState } from "react"
+import { Link } from "react-router-dom"
 import { Shield, Lock, Mail, ArrowRight, ArrowLeft, Check } from "lucide-react"
 
 export default function ResetPasswordPage() {
@@ -31,7 +27,7 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* Logo top left */}
-      <Link href="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
         <div className="relative">
           <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
           <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
@@ -89,7 +85,7 @@ export default function ResetPasswordPage() {
 
               {/* Back to login */}
               <Link
-                href="/login"
+                to="/login"
                 className="mt-6 flex items-center justify-center gap-2 text-slate-600 hover:text-blue-600 transition-colors font-medium"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -117,7 +113,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <Link
-                  href="/login"
+                  to="/login"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
