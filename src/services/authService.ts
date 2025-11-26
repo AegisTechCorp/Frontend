@@ -1,3 +1,5 @@
+import { deriveMasterKey } from '../utils/crypto.utils'
+
 // Types pour l'authentification
 export interface User {
   id: string
@@ -27,11 +29,12 @@ export interface SignupData {
   password: string
 }
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/v1`
 
 class AuthService {
   private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
+  private static MASTER_KEY = 'masterKey'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -55,7 +58,16 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Le backend retourne { user, accessToken, refreshToken }
+
+    // Dériver la masterKey avec le vaultSalt reçu (Architecture Hybride)
+    console.log('🔐 Dérivation de la masterKey...')
+    const masterKey = await deriveMasterKey(data.password, result.vaultSalt)
+    console.log('✅ MasterKey dérivée')
+
+    // Stocker en sessionStorage (volatile, disparaît à la fermeture du navigateur)
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    // Le backend retourne { user, accessToken, refreshToken, vaultSalt }
     this.setAuth(result.accessToken, result.user)
     return { token: result.accessToken, user: result.user }
   }
@@ -76,7 +88,16 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Le backend retourne { user, accessToken, refreshToken }
+
+    // Dériver la masterKey avec le vaultSalt reçu (Architecture Hybride)
+    console.log('🔐 Dérivation de la masterKey...')
+    const masterKey = await deriveMasterKey(credentials.password, result.vaultSalt)
+    console.log('✅ MasterKey dérivée')
+
+    // Stocker en sessionStorage (volatile, disparaît à la fermeture du navigateur)
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    // Le backend retourne { user, accessToken, refreshToken, vaultSalt }
     this.setAuth(result.accessToken, result.user)
     return { token: result.accessToken, user: result.user }
   }
@@ -84,6 +105,7 @@ class AuthService {
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
+    sessionStorage.removeItem(this.MASTER_KEY) // ⬅️ Effacer la masterKey
   }
 
   static getToken(): string | null {
