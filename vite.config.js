@@ -6,9 +6,9 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 
 export default defineConfig({
   plugins: [
-    react(),
     wasm(),
-    topLevelAwait()
+    topLevelAwait(),
+    react()
   ],
   resolve: {
     alias: {
@@ -31,11 +31,20 @@ export default defineConfig({
   build: {
     target: 'esnext',
     rollupOptions: {
-      external: [],
       output: {
         manualChunks: {
           'argon2': ['argon2-browser']
         }
+      },
+      onwarn(warning, warn) {
+        // Ignorer les avertissements spécifiques à argon2-browser
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' || 
+            warning.message.includes('argon2.wasm') ||
+            warning.message.includes('Module "path"') ||
+            warning.message.includes('Module "fs"')) {
+          return;
+        }
+        warn(warning);
       }
     }
   },
