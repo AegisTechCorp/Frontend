@@ -27,13 +27,16 @@ Object.defineProperty(window, 'localStorage', {
 globalThis.fetch = vi.fn() as any
 
 describe('AuthService', () => {
+  // Générer un vaultSalt base64 valide (32 bytes = 44 caractères en base64)
+  const validVaultSalt = btoa(Array.from({ length: 32 }, (_, i) => String.fromCharCode(i)).join(''));
+  
   const mockUser: User = {
     id: '123',
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
     dateOfBirth: '1990-01-01',
-    vaultSalt: 'mockVaultSaltBase64==',
+    vaultSalt: validVaultSalt,
     isActive: true,
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
@@ -117,6 +120,7 @@ describe('AuthService', () => {
       const mockResponse = {
         user: mockUser,
         accessToken: mockToken,
+        vaultSalt: validVaultSalt,
         refreshToken: 'refresh-token',
       }
 
@@ -174,6 +178,7 @@ describe('AuthService', () => {
       const mockResponse = {
         user: mockUser,
         accessToken: mockToken,
+        vaultSalt: validVaultSalt,
       }
 
       ;(globalThis.fetch as any).mockResolvedValueOnce({
