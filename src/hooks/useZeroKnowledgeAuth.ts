@@ -41,7 +41,15 @@ export function useZeroKnowledgeAuth() {
     setError(null);
 
     try {
-      console.log('🔐 [REGISTER] Envoi au serveur...');
+      console.log(' Dérivation des clés...');
+
+      // 1. Dériver masterKey et authKey
+      const mk = await deriveMasterKey(password, email);
+      const ak = await deriveAuthKey(password, email);
+      const ah = await hashAuthKey(ak);
+
+      console.log('✅ Clés dérivées');
+      console.log('📤 Envoi au serveur...');
 
       // 1. Envoyer le password en clair au serveur (chiffré par HTTPS)
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -138,9 +146,8 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  /**
-   * Déconnexion
-   */
+  // Déconnexion
+   
   const logout = async () => {
     try {
       await fetch(`${API_URL}/auth/logout`, {
@@ -167,3 +174,4 @@ export function useZeroKnowledgeAuth() {
     logout,
   };
 }
+
