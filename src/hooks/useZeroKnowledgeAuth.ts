@@ -16,9 +16,7 @@ export function useZeroKnowledgeAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Inscription avec Zero-Knowledge
-   */
+  //Inscription avec Zero-Knowledge
   const register = async (
     email: string,
     password: string,
@@ -29,7 +27,7 @@ export function useZeroKnowledgeAuth() {
     setError(null);
 
     try {
-      console.log('🔐 Dérivation des clés...');
+      console.log(' Dérivation des clés...');
 
       // 1. Dériver masterKey et authKey
       const mk = await deriveMasterKey(password, email);
@@ -77,9 +75,8 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  /**
-   * Connexion avec Zero-Knowledge
-   */
+  //Connexion avec Zero-Knowledge
+   
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
@@ -131,9 +128,8 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  /**
-   * Déconnexion
-   */
+  // Déconnexion
+   
   const logout = async () => {
     try {
       await fetch(`${API_URL}/auth/logout`, {
@@ -160,3 +156,4 @@ export function useZeroKnowledgeAuth() {
     logout,
   };
 }
+
