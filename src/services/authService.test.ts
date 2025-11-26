@@ -32,7 +32,9 @@ describe('AuthService', () => {
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    birthDate: '1990-01-01',
+    dateOfBirth: '1990-01-01',
+    vaultSalt: 'mockVaultSaltBase64==',
+    isActive: true,
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
   }
