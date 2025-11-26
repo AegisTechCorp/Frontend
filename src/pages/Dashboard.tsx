@@ -344,7 +344,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/dashboard" className="flex items-center gap-3">
               <div className="relative">
                 <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
                 <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
@@ -356,7 +356,11 @@ export default function DashboardPage() {
 
             {/* Desktop navigation */}
             <div className="hidden md:flex items-center gap-6">
-              <button className="relative p-2 text-slate-600 hover:text-blue-600 transition-colors">
+              <button 
+                onClick={() => navigate('/notifications')}
+                className="relative p-2 text-slate-600 hover:text-blue-600 transition-colors"
+                title="Notifications"
+              >
                 <Bell className="w-6 h-6" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
               </button>
@@ -406,7 +410,10 @@ export default function DashboardPage() {
 
                       {/* Menu Items */}
                       <div className="p-2">
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
+                        <button 
+                          onClick={() => { setShowUserPopover(false); navigate('/profile'); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group"
+                        >
                           <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                             <User className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
                           </div>
@@ -416,7 +423,10 @@ export default function DashboardPage() {
                           </div>
                         </button>
 
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
+                        <button 
+                          onClick={() => { setShowUserPopover(false); navigate('/settings'); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group"
+                        >
                           <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                             <Settings className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
                           </div>
@@ -426,7 +436,10 @@ export default function DashboardPage() {
                           </div>
                         </button>
 
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
+                        <button 
+                          onClick={() => { setShowUserPopover(false); navigate('/security'); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group"
+                        >
                           <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                             <Shield className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
                           </div>
@@ -675,7 +688,7 @@ export default function DashboardPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
-                      onClick={() => window.open(`/documents/${doc.id}`, '_blank')}
+                      onClick={() => navigate(`/document/${doc.id}`)}
                       className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Voir le document"
                     >
