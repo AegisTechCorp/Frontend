@@ -16,7 +16,7 @@ export interface AuthResponse {
 
 export interface LoginCredentials {
   email: string
-  password: string
+  authHash: string // Hash de l'authKey au lieu du password
 }
 
 export interface SignupData {
@@ -24,7 +24,7 @@ export interface SignupData {
   lastName: string
   email: string
   birthDate: string
-  password: string
+  authHash: string // Hash de l'authKey au lieu du password
 }
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'
@@ -42,7 +42,7 @@ class AuthService {
       credentials: 'include', // Pour les cookies HttpOnly
       body: JSON.stringify({
         email: data.email,
-        password: data.password,
+        password: data.authHash, // Envoi du hash de l'authKey comme "password" pour compatibilité backend
         firstName: data.firstName,
         lastName: data.lastName,
         dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
@@ -67,7 +67,10 @@ class AuthService {
         'Content-Type': 'application/json',
       },
       credentials: 'include', // Pour les cookies HttpOnly
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.authHash, // Envoi du hash de l'authKey comme "password" pour compatibilité backend
+      }),
     })
 
     if (!response.ok) {
@@ -84,6 +87,8 @@ class AuthService {
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
+    // Nettoyer aussi la masterKey de sessionStorage
+    sessionStorage.removeItem('aegis_master_key')
   }
 
   static getToken(): string | null {

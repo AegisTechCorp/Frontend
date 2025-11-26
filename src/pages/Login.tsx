@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint, AlertCircle } from "lucide-react"
 import AuthService from "../services/authService"
+import { deriveMasterKey, deriveAuthKey, hashAuthKey, storeMasterKey } from "../lib/crypto.utils"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -23,10 +24,20 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Appel à l'API backend via AuthService
+      // 1. Re-dériver les deux clés depuis le mot de passe
+      const masterKey = await deriveMasterKey(password, email)
+      const authKey = await deriveAuthKey(password, email)
+
+      // 2. Stocker la masterKey en sessionStorage (ne sera jamais envoyée au serveur)
+      storeMasterKey(masterKey)
+
+      // 3. Hasher l'authKey avant de l'envoyer au serveur
+      const authHash = await hashAuthKey(authKey)
+
+      // 4. Appel à l'API backend via AuthService avec authHash au lieu du password
       const response = await AuthService.login({
         email,
-        password,
+        authHash: authHash, // Envoi du hash au lieu du password
       })
 
       console.log("Connexion réussie:", response.user)
@@ -35,6 +46,8 @@ export default function LoginPage() {
       navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
+      // En cas d'erreur, nettoyer la masterKey
+      sessionStorage.removeItem('aegis_master_key')
     } finally {
       setIsLoading(false)
     }

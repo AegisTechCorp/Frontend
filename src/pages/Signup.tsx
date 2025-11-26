@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, User, Calendar, Check, AlertCircle } from "lucide-react"
 import AuthService from "../services/authService"
+import { deriveMasterKey, deriveAuthKey, hashAuthKey, storeMasterKey } from "../lib/crypto.utils"
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -80,13 +81,23 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      // Appel à l'API backend via AuthService
+      // 1. Dériver les deux clés depuis le mot de passe
+      const masterKey = await deriveMasterKey(formData.password, formData.email)
+      const authKey = await deriveAuthKey(formData.password, formData.email)
+
+      // 2. Stocker la masterKey en sessionStorage (ne sera jamais envoyée au serveur)
+      storeMasterKey(masterKey)
+
+      // 3. Hasher l'authKey avant de l'envoyer au serveur
+      const authHash = await hashAuthKey(authKey)
+
+      // 4. Appel à l'API backend via AuthService avec authHash au lieu du password
       const response = await AuthService.signup({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         birthDate: formData.birthDate,
-        password: formData.password,
+        authHash: authHash, // Envoi du hash au lieu du password
       })
 
       console.log("Inscription réussie:", response.user)
@@ -95,6 +106,8 @@ export default function SignupPage() {
       navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
+      // En cas d'erreur, nettoyer la masterKey
+      sessionStorage.removeItem('aegis_master_key')
     } finally {
       setIsLoading(false)
     }
