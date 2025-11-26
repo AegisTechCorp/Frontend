@@ -1,3 +1,5 @@
+import { deriveMasterKey, deriveAuthKey, hashAuthKey } from '../utils/crypto'
+
 // Types pour l'authentification
 export interface User {
   id: string
@@ -32,20 +34,26 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost
 class AuthService {
   private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
+  private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
+    // Dériver les clés cryptographiques
+    const masterKey = await deriveMasterKey(data.password, data.email)
+    const authKey = await deriveAuthKey(data.password, data.email)
+    const authHash = await hashAuthKey(authKey)
+
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Pour les cookies HttpOnly
+      credentials: 'include',
       body: JSON.stringify({
         email: data.email,
-        password: data.password,
+        authHash: authHash,
         firstName: data.firstName,
         lastName: data.lastName,
-        dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
+        dateOfBirth: data.birthDate,
       }),
     })
 
@@ -55,18 +63,28 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Ne pas stocker le token lors de l'inscription - l'utilisateur doit se connecter
+    // Stocker la masterKey localement (ne pas l'envoyer au serveur)
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+    
     return { token: result.accessToken, user: result.user }
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Dériver les clés cryptographiques
+    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
+    const authKey = await deriveAuthKey(credentials.password, credentials.email)
+    const authHash = await hashAuthKey(authKey)
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Pour les cookies HttpOnly
-      body: JSON.stringify(credentials),
+      credentials: 'include',
+      body: JSON.stringify({
+        email: credentials.email,
+        authHash: authHash,
+      }),
     })
 
     if (!response.ok) {
@@ -75,14 +93,17 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Le backend retourne { user, accessToken, refreshToken }
+    // Stocker le token, l'utilisateur et la masterKey
     this.setAuth(result.accessToken, result.user)
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+    
     return { token: result.accessToken, user: result.user }
   }
 
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
+    sessionStorage.removeItem(this.MASTER_KEY)
   }
 
   static getToken(): string | null {
@@ -97,6 +118,10 @@ class AuthService {
     } catch {
       return null
     }
+  }
+
+  static getMasterKey(): string | null {
+    return sessionStorage.getItem(this.MASTER_KEY)
   }
 
   static isAuthenticated(): boolean {
