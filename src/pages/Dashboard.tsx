@@ -27,16 +27,21 @@ import {
   Settings,
   ChevronDown,
   Loader2,
-  AlertCircle,
   type LucideIcon,
 } from "lucide-react"
 import {
   getDashboardStats,
   getSecureFolders,
   getDocuments,
+  searchDocuments,
+  deleteDocument,
+  downloadDocument,
+  createSecureFolder,
+  uploadDocument,
   type Document,
   type SecureFolder,
   type DashboardStats,
+  type DocumentType,
 } from "../api/dashboardApi"
 import { logoutUser } from "../api/authApi"
 import AuthService from "../services/authService"
@@ -58,142 +63,90 @@ export default function DashboardPage() {
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [showUserPopover, setShowUserPopover] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  
+  // États pour le formulaire de création de dossier
+  const [newFolderData, setNewFolderData] = useState({
+    name: '',
+    icon: 'Folder',
+    color: 'from-blue-500 to-cyan-500',
+    unlockMethod: 'pin' as 'pin' | 'biometric',
+    pin: '',
+  })
+  
+  // États pour le formulaire d'upload
+  const [uploadData, setUploadData] = useState({
+    title: '',
+    type: 'other' as DocumentType,
+    doctor: '',
+    folderId: '',
+    file: null as File | null,
+  })
   
   // États pour les données
   const [folders, setFolders] = useState<SecureFolder[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   
   // Obtenir les infos utilisateur
   const currentUser = AuthService.getUser()
 
   useEffect(() => {
-    setFolders([
-      {
-        id: "1",
-        name: "Analyses médicales",
-        icon: "Stethoscope",
-        color: "from-blue-500 to-cyan-500",
-        documentCount: 8,
-        isLocked: true,
-        unlockMethod: "pin" as const,
-        userId: "user-1",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        name: "Ordonnances",
-        icon: "Pill",
-        color: "from-green-500 to-emerald-500",
-        documentCount: 12,
-        isLocked: true,
-        unlockMethod: "biometric" as const,
-        userId: "user-1",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "3",
-        name: "Imageries",
-        icon: "Camera",
-        color: "from-purple-500 to-pink-500",
-        documentCount: 5,
-        isLocked: true,
-        unlockMethod: "pin" as const,
-        userId: "user-1",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ])
-    
-    setDocuments([
-      {
-        id: "1",
-        title: "Analyses sanguines complètes",
-        type: "exam",
-        date: "2024-01-15",
-        doctor: "Dr. Martin",
-        size: "2.3 MB",
-        folderId: "1",
-        filePath: "/uploads/doc1.pdf",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        title: "IRM lombaire",
-        type: "imaging",
-        date: "2024-01-12",
-        doctor: "Dr. Lefebvre",
-        size: "15.8 MB",
-        folderId: "3",
-        filePath: "/uploads/doc2.pdf",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "3",
-        title: "Ordonnance antibiotiques",
-        type: "prescription",
-        date: "2024-01-10",
-        doctor: "Dr. Martin",
-        size: "0.5 MB",
-        folderId: "2",
-        filePath: "/uploads/doc3.pdf",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "4",
-        title: "Allergie pénicilline",
-        type: "allergy",
-        date: "2023-12-05",
-        doctor: "Dr. Dubois",
-        size: "0.3 MB",
-        filePath: "/uploads/doc4.pdf",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ])
-    
-    setStats({
-      totalDocuments: 25,
-      totalFolders: 3,
-      totalPrescriptions: 12,
-      totalExams: 8,
-    })
-    
-    setLoading(false)
+    loadDashboardData()
   }, [])
 
   // Fonction pour charger toutes les données du dashboard
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      setError(null)
 
-      // Charger les données en parallèle
-      const [statsData, foldersData, documentsData] = await Promise.all([
+      // Charger les données en parallèle - ignorer les erreurs individuelles pour l'instant
+      const results = await Promise.allSettled([
         getDashboardStats(),
         getSecureFolders(),
         getDocuments(),
       ])
 
-      setStats(statsData)
-      setFolders(foldersData)
-      setDocuments(documentsData)
+      if (results[0].status === 'fulfilled') setStats(results[0].value)
+      if (results[1].status === 'fulfilled') setFolders(results[1].value)
+      if (results[2].status === 'fulfilled') setDocuments(results[2].value)
+
+      // Ne pas afficher d'erreur - c'est normal si l'utilisateur vient de créer son compte
+      // Les données seront vides jusqu'à ce qu'il ajoute des documents et dossiers
     } catch (err) {
       console.error('Erreur lors du chargement:', err)
-      setError(err instanceof Error ? err.message : 'Erreur de chargement')
+      // Ne pas afficher d'erreur critique
     } finally {
       setLoading(false)
     }
   }
 
+  // Effet pour la recherche et le filtrage
   useEffect(() => {
+    const performSearch = async () => {
+      if (searchQuery.trim()) {
+        try {
+          const results = await searchDocuments(searchQuery, selectedFilter as DocumentType | 'all')
+          setDocuments(results)
+        } catch (err) {
+          console.error('Erreur de recherche:', err)
+          // Ne pas afficher l'erreur, juste garder les documents actuels
+        }
+      } else {
+        // Recharger les documents si pas de recherche
+        try {
+          const documentsData = await getDocuments()
+          setDocuments(documentsData)
+        } catch (err) {
+          console.error('Erreur lors du chargement:', err)
+          // Ne pas afficher l'erreur, garder les documents vides
+        }
+      }
+    }
+
+    const debounceTimer = setTimeout(performSearch, 300)
+    return () => clearTimeout(debounceTimer)
   }, [searchQuery, selectedFilter])
 
   const handleLogout = () => {
@@ -203,11 +156,115 @@ export default function DashboardPage() {
 
   const handleDeleteDocument = async (documentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return
-    setDocuments(documents.filter(doc => doc.id !== documentId))
+    
+    try {
+      const result = await deleteDocument(documentId)
+      if (result.success) {
+        // Recharger les documents après suppression
+        await loadDashboardData()
+      } else {
+        alert(result.error || 'Erreur lors de la suppression')
+      }
+    } catch (err) {
+      console.error('Erreur lors de la suppression:', err)
+      alert('Erreur lors de la suppression du document')
+    }
   }
 
-  const handleDownloadDocument = async () => {
-    alert('Téléchargement du document (fonctionnalité disponible avec le backend)')
+  const handleDownloadDocument = async (documentId: string) => {
+    try {
+      const result = await downloadDocument(documentId)
+      if (!result.success) {
+        alert(result.error || 'Erreur lors du téléchargement')
+      }
+    } catch (err) {
+      console.error('Erreur lors du téléchargement:', err)
+      alert('Erreur lors du téléchargement du document')
+    }
+  }
+
+  const handleCreateFolder = async () => {
+    if (!newFolderData.name.trim()) {
+      alert('Veuillez entrer un nom de dossier')
+      return
+    }
+    
+    if (newFolderData.unlockMethod === 'pin' && newFolderData.pin.length !== 4) {
+      alert('Le code PIN doit contenir exactement 4 chiffres')
+      return
+    }
+
+    try {
+      const result = await createSecureFolder(newFolderData)
+      if (result.success) {
+        setShowCreateFolder(false)
+        setNewFolderData({
+          name: '',
+          icon: 'Folder',
+          color: 'from-blue-500 to-cyan-500',
+          unlockMethod: 'pin',
+          pin: '',
+        })
+        await loadDashboardData()
+      } else {
+        alert(result.error || 'Erreur lors de la création du dossier')
+      }
+    } catch (err) {
+      console.error('Erreur lors de la création:', err)
+      alert('Erreur lors de la création du dossier')
+    }
+  }
+
+  const handleUploadDocument = async () => {
+    if (!uploadData.title.trim() || !uploadData.doctor.trim() || !uploadData.file) {
+      alert('Veuillez remplir tous les champs et sélectionner un fichier')
+      return
+    }
+
+    try {
+      const result = await uploadDocument({
+        title: uploadData.title,
+        type: uploadData.type,
+        doctor: uploadData.doctor,
+        folderId: uploadData.folderId || undefined,
+        file: uploadData.file,
+      })
+      
+      if (result.success) {
+        setShowUploadModal(false)
+        setUploadData({
+          title: '',
+          type: 'other',
+          doctor: '',
+          folderId: '',
+          file: null,
+        })
+        await loadDashboardData()
+      } else {
+        alert(result.error || 'Erreur lors de l\'upload')
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'upload:', err)
+      alert('Erreur lors de l\'upload du document')
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUploadData({ ...uploadData, file: e.target.files[0] })
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setUploadData({ ...uploadData, file: e.dataTransfer.files[0] })
+      setShowUploadModal(true)
+    }
   }
 
 
@@ -275,25 +332,6 @@ export default function DashboardPage() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Chargement de votre espace...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // État d'erreur
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl border border-red-200">
-          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2 text-center">Erreur de chargement</h2>
-          <p className="text-slate-600 text-center mb-6">{error}</p>
-          <button
-            onClick={loadDashboardData}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-          >
-            Réessayer
-          </button>
         </div>
       </div>
     )
@@ -573,7 +611,10 @@ export default function DashboardPage() {
               </div>
 
               {/* Upload button */}
-              <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap">
+              <button 
+                onClick={() => setShowUploadModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap"
+              >
                 <Plus className="w-5 h-5" />
                 <span className="hidden sm:inline">Ajouter</span>
               </button>
@@ -641,7 +682,7 @@ export default function DashboardPage() {
                       <Eye className="w-5 h-5" />
                     </button>
                     <button 
-                      onClick={handleDownloadDocument}
+                      onClick={() => handleDownloadDocument(doc.id)}
                       className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Télécharger"
                     >
@@ -662,7 +703,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Upload zone */}
-        <div className="mt-8 bg-white rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer group">
+        <div 
+          className="mt-8 bg-white rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer group"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={() => setShowUploadModal(true)}
+        >
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
             <Upload className="w-8 h-8 text-white" />
           </div>
@@ -677,17 +723,194 @@ export default function DashboardPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Créer un dossier sécurisé</h2>
-            <p className="text-slate-600 mb-6">
-              Les dossiers sont protégés par un code PIN ou une empreinte digitale
-            </p>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Nom du dossier</label>
+                <input
+                  type="text"
+                  value={newFolderData.name}
+                  onChange={(e) => setNewFolderData({ ...newFolderData, name: e.target.value })}
+                  placeholder="Ex: Analyses médicales"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Icône</label>
+                <select
+                  value={newFolderData.icon}
+                  onChange={(e) => setNewFolderData({ ...newFolderData, icon: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                >
+                  <option value="Folder">Dossier</option>
+                  <option value="Stethoscope">Stéthoscope</option>
+                  <option value="Pill">Médicament</option>
+                  <option value="Camera">Imagerie</option>
+                  <option value="FileText">Document</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Couleur</label>
+                <select
+                  value={newFolderData.color}
+                  onChange={(e) => setNewFolderData({ ...newFolderData, color: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                >
+                  <option value="from-blue-500 to-cyan-500">Bleu</option>
+                  <option value="from-green-500 to-emerald-500">Vert</option>
+                  <option value="from-purple-500 to-pink-500">Violet</option>
+                  <option value="from-red-500 to-orange-500">Rouge</option>
+                  <option value="from-yellow-500 to-orange-500">Jaune</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Méthode de déverrouillage</label>
+                <select
+                  value={newFolderData.unlockMethod}
+                  onChange={(e) => setNewFolderData({ ...newFolderData, unlockMethod: e.target.value as 'pin' | 'biometric' })}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                >
+                  <option value="pin">Code PIN</option>
+                  <option value="biometric">Biométrie</option>
+                </select>
+              </div>
+
+              {newFolderData.unlockMethod === 'pin' && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Code PIN (4 chiffres)</label>
+                  <input
+                    type="password"
+                    value={newFolderData.pin}
+                    onChange={(e) => setNewFolderData({ ...newFolderData, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    placeholder="••••"
+                    maxLength={4}
+                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center text-2xl tracking-widest"
+                  />
+                </div>
+              )}
+            </div>
+
             <button
-              onClick={() => setShowCreateFolder(false)}
+              onClick={handleCreateFolder}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               Créer le dossier
             </button>
             <button
-              onClick={() => setShowCreateFolder(false)}
+              onClick={() => {
+                setShowCreateFolder(false)
+                setNewFolderData({
+                  name: '',
+                  icon: 'Folder',
+                  color: 'from-blue-500 to-cyan-500',
+                  unlockMethod: 'pin',
+                  pin: '',
+                })
+              }}
+              className="w-full mt-3 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition-all"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Ajouter un document</h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Titre du document</label>
+                <input
+                  type="text"
+                  value={uploadData.title}
+                  onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
+                  placeholder="Ex: Analyses sanguines"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Type de document</label>
+                <select
+                  value={uploadData.type}
+                  onChange={(e) => setUploadData({ ...uploadData, type: e.target.value as DocumentType })}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                >
+                  <option value="exam">Examen</option>
+                  <option value="prescription">Ordonnance</option>
+                  <option value="imaging">Imagerie</option>
+                  <option value="allergy">Allergie</option>
+                  <option value="other">Autre</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Médecin prescripteur</label>
+                <input
+                  type="text"
+                  value={uploadData.doctor}
+                  onChange={(e) => setUploadData({ ...uploadData, doctor: e.target.value })}
+                  placeholder="Ex: Dr. Martin"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Dossier (optionnel)</label>
+                <select
+                  value={uploadData.folderId}
+                  onChange={(e) => setUploadData({ ...uploadData, folderId: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                >
+                  <option value="">Aucun dossier</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Fichier</label>
+                <input
+                  type="file"
+                  onChange={handleFileSelect}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                />
+                {uploadData.file && (
+                  <p className="text-sm text-slate-600 mt-2">
+                    Fichier sélectionné: {uploadData.file.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleUploadDocument}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+            >
+              Ajouter le document
+            </button>
+            <button
+              onClick={() => {
+                setShowUploadModal(false)
+                setUploadData({
+                  title: '',
+                  type: 'other',
+                  doctor: '',
+                  folderId: '',
+                  file: null,
+                })
+              }}
               className="w-full mt-3 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition-all"
             >
               Annuler

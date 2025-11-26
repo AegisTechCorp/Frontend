@@ -1,20 +1,35 @@
-import React, { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, Fingerprint, AlertCircle } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Link, useNavigate, useLocation } from "react-router-dom"
+import { Shield, Lock, Mail, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle } from "lucide-react"
+import AuthService from "../services/authService"
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+
+  useEffect(() => {
+    // Afficher le message de succès s'il vient de l'inscription
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message)
+      if (location.state?.email) {
+        setEmail(location.state.email)
+      }
+      // Nettoyer le state pour éviter que le message ne s'affiche à nouveau
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     
-    if (!email || !password) {
+    if (!email || !password) { 
       setError("Veuillez remplir tous les champs")
       return
     }
@@ -22,24 +37,12 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await AuthService.login({
+        email,
+        password,
+      })
       
-      const mockUser = {
-        id: "mock-user-id",
-        email: email,
-        firstName: "Jean",
-        lastName: "Dupont",
-        birthDate: "1990-01-01",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      
-      const mockToken = "mock-jwt-token-" + Date.now()
-      
-      localStorage.setItem('aegis_auth_token', mockToken)
-      localStorage.setItem('aegis_user', JSON.stringify(mockUser))
-      
-      console.log("Connexion réussie:", mockUser)
+      console.log("Connexion réussie:", response.user)
       
       navigate("/dashboard")
     } catch (err) {
@@ -85,6 +88,14 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Bienvenue</h1>
             <p className="text-slate-600">Connectez-vous à votre dossier médical sécurisé</p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-800 font-medium">{successMessage}</p>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
