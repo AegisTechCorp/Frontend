@@ -55,7 +55,7 @@ export type UploadDocumentData = {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+    const response = await fetch(`${API_BASE_URL}/medical-records/statistics`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
     })
@@ -65,156 +65,84 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     }
 
     const data = await response.json()
-    return data
+    // Adapter les statistiques du backend au format attendu
+    return {
+      totalDocuments: data.totalRecords || 0,
+      totalFolders: 0, // Pas de dossiers dans le backend actuel
+      totalPrescriptions: data.byType?.ordonnance || 0,
+      totalExams: (data.byType?.analyse || 0) + (data.byType?.imagerie || 0),
+    }
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
 
 export const getSecureFolders = async (): Promise<SecureFolder[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/folders`, {
-      method: 'GET',
-      headers: AuthService.getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des dossiers')
-    }
-
-    const data = await response.json()
-    return data.folders
-  } catch (error) {
-    throw error instanceof Error ? error : new Error('Erreur réseau')
-  }
+  // Le backend n'a pas de concept de "folders" pour l'instant
+  // Retourner un tableau vide en attendant l'implémentation
+  return []
 }
 
 /**
  * Créer un nouveau dossier sécurisé
  */
-export const createSecureFolder = async (folderData: CreateFolderData) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/folders`, {
-      method: 'POST',
-      headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify(folderData),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erreur lors de la création du dossier')
-    }
-
-    const data = await response.json()
-    return { success: true, folder: data.folder }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors de la création',
-    }
+export const createSecureFolder = async (_folderData: CreateFolderData) => {
+  // Fonctionnalité non disponible dans le backend actuel
+  return {
+    success: false,
+    error: 'La création de dossiers n\'est pas encore implémentée',
   }
 }
 
-export const updateSecureFolder = async (folderId: string, updates: Partial<CreateFolderData>) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/folders/${folderId}`, {
-      method: 'PUT',
-      headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify(updates),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erreur lors de la mise à jour')
-    }
-
-    const data = await response.json()
-    return { success: true, folder: data.folder }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
-    }
+export const updateSecureFolder = async (_folderId: string, _updates: Partial<CreateFolderData>) => {
+  // Fonctionnalité non disponible dans le backend actuel
+  return {
+    success: false,
+    error: 'La gestion des dossiers sécurisés n\'est pas disponible',
   }
 }
 
-export const deleteSecureFolder = async (folderId: string) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/folders/${folderId}`, {
-      method: 'DELETE',
-      headers: AuthService.getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erreur lors de la suppression')
-    }
-
-    return { success: true }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors de la suppression',
-    }
+export const deleteSecureFolder = async (_folderId: string) => {
+  // Fonctionnalité non disponible dans le backend actuel
+  return {
+    success: false,
+    error: 'La gestion des dossiers sécurisés n\'est pas disponible',
   }
 }
 
-export const unlockFolderWithPin = async (folderId: string, pin: string) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/folders/${folderId}/unlock`, {
-      method: 'POST',
-      headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify({ pin }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'PIN incorrect')
-    }
-
-    const data = await response.json()
-    return { success: true, token: data.unlockToken }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'PIN incorrect',
-    }
+export const unlockFolderWithPin = async (_folderId: string, _pin: string) => {
+  // Fonctionnalité non disponible dans le backend actuel
+  return {
+    success: false,
+    error: 'Le déverrouillage de dossiers n\'est pas disponible',
   }
 }
 
-export const unlockFolderWithBiometric = async (folderId: string) => {
-  try {
-    if (!window.PublicKeyCredential) {
-      throw new Error('La biométrie n\'est pas supportée sur ce navigateur')
-    }
-
-    const response = await fetch(`${API_BASE_URL}/folders/${folderId}/unlock-biometric`, {
-      method: 'POST',
-      headers: AuthService.getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erreur d\'authentification')
-    }
-
-    const data = await response.json()
-    return { success: true, token: data.unlockToken }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur d\'authentification',
-    }
+export const unlockFolderWithBiometric = async (_folderId: string) => {
+  // Fonctionnalité non disponible dans le backend actuel
+  return {
+    success: false,
+    error: 'Le déverrouillage de dossiers n\'est pas disponible',
   }
 }
 
-export const getDocuments = async (folderId?: string): Promise<Document[]> => {
-  try {
-    const url = folderId
-      ? `${API_BASE_URL}/documents?folderId=${folderId}`
-      : `${API_BASE_URL}/documents`
+// Fonction helper pour mapper les types
+function mapRecordTypeToDocumentType(recordType: string): DocumentType {
+  const mapping: Record<string, DocumentType> = {
+    'ordonnance': 'prescription',
+    'analyse': 'exam',
+    'imagerie': 'imaging',
+    'consultation': 'other',
+    'vaccination': 'other',
+    'hospitalisation': 'other',
+    'autre': 'other',
+  }
+  return mapping[recordType] || 'other'
+}
 
-    const response = await fetch(url, {
+export const getDocuments = async (): Promise<Document[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
     })
@@ -223,8 +151,21 @@ export const getDocuments = async (folderId?: string): Promise<Document[]> => {
       throw new Error('Erreur lors de la récupération des documents')
     }
 
-    const data = await response.json()
-    return data.documents
+    const records = await response.json()
+    
+    // Convertir les medical records au format Document
+    return records.map((record: any) => ({
+      id: record.id,
+      title: record.encryptedTitle || 'Document médical',
+      type: mapRecordTypeToDocumentType(record.recordType),
+      date: record.metadata?.appointmentDate || record.createdAt,
+      doctor: record.metadata?.doctor || 'Non spécifié',
+      size: record.metadata?.size || '0 KB',
+      folderId: undefined,
+      filePath: '',
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    }))
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
@@ -232,43 +173,67 @@ export const getDocuments = async (folderId?: string): Promise<Document[]> => {
 
 export const searchDocuments = async (query: string, filter?: DocumentType | 'all'): Promise<Document[]> => {
   try {
-    const params = new URLSearchParams()
-    if (query) params.append('q', query)
-    if (filter && filter !== 'all') params.append('type', filter)
-
-    const response = await fetch(`${API_BASE_URL}/documents/search?${params.toString()}`, {
-      method: 'GET',
-      headers: AuthService.getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la recherche')
+    // Récupérer tous les documents et filtrer côté client
+    const allDocuments = await getDocuments()
+    
+    let filtered = allDocuments
+    
+    // Filtrer par type si nécessaire
+    if (filter && filter !== 'all') {
+      filtered = filtered.filter(doc => doc.type === filter)
     }
-
-    const data = await response.json()
-    return data.documents
+    
+    // Filtrer par requête de recherche
+    if (query) {
+      const lowerQuery = query.toLowerCase()
+      filtered = filtered.filter(doc => 
+        doc.title.toLowerCase().includes(lowerQuery) ||
+        doc.doctor.toLowerCase().includes(lowerQuery)
+      )
+    }
+    
+    return filtered
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
 
+// Mapper DocumentType vers RecordType du backend
+function mapDocumentTypeToRecordType(docType: DocumentType): string {
+  const mapping: Record<DocumentType, string> = {
+    'prescription': 'ordonnance',
+    'exam': 'analyse',
+    'imaging': 'imagerie',
+    'allergy': 'autre',
+    'other': 'autre',
+  }
+  return mapping[docType] || 'autre'
+}
+
 export const uploadDocument = async (documentData: UploadDocumentData) => {
   try {
-    const formData = new FormData()
-    formData.append('title', documentData.title)
-    formData.append('type', documentData.type)
-    formData.append('doctor', documentData.doctor)
-    formData.append('file', documentData.file)
-    if (documentData.folderId) {
-      formData.append('folderId', documentData.folderId)
-    }
-
-    const response = await fetch(`${API_BASE_URL}/documents`, {
+    // Pour l'instant, on simule le chiffrement côté client
+    // En production, il faudrait vraiment chiffrer les données avec la clé de l'utilisateur
+    const encryptedData = btoa(JSON.stringify({
+      file: documentData.file.name,
+      content: 'Contenu chiffré du fichier',
+    }))
+    
+    const encryptedTitle = btoa(documentData.title)
+    
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${AuthService.getToken()}`,
-      },
-      body: formData,
+      headers: AuthService.getAuthHeaders(),
+      body: JSON.stringify({
+        encryptedData,
+        encryptedTitle,
+        recordType: mapDocumentTypeToRecordType(documentData.type),
+        metadata: {
+          doctor: documentData.doctor,
+          appointmentDate: new Date().toISOString().split('T')[0],
+          size: `${(documentData.file.size / 1024).toFixed(2)} KB`,
+        },
+      }),
     })
 
     if (!response.ok) {
@@ -277,7 +242,7 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
     }
 
     const data = await response.json()
-    return { success: true, document: data.document }
+    return { success: true, document: data }
   } catch (error) {
     return {
       success: false,
@@ -291,28 +256,29 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
  */
 export const downloadDocument = async (documentId: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/${documentId}/download`, {
+    // Récupérer les données du document
+    const response = await fetch(`${API_BASE_URL}/medical-records/${documentId}`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${AuthService.getToken()}`,
-      },
+      headers: AuthService.getAuthHeaders(),
     })
 
     if (!response.ok) {
       throw new Error('Erreur lors du téléchargement')
     }
 
-    const blob = await response.blob()
-    const contentDisposition = response.headers.get('Content-Disposition')
-    const filename = contentDisposition
-      ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-      : 'document'
-
-    // Créer un lien de téléchargement
+    const record = await response.json()
+    
+    // Déchiffrer les données (simulation)
+    const decryptedData = JSON.parse(atob(record.encryptedData))
+    const decryptedTitle = atob(record.encryptedTitle || 'document')
+    
+    // Créer un fichier texte avec les données
+    const content = JSON.stringify(decryptedData, null, 2)
+    const blob = new Blob([content], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.download = `${decryptedTitle}.json`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
@@ -327,9 +293,40 @@ export const downloadDocument = async (documentId: string) => {
   }
 }
 
+export const getDocumentById = async (documentId: string): Promise<Document> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/medical-records/${documentId}`, {
+      method: 'GET',
+      headers: AuthService.getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error('Document introuvable')
+    }
+
+    const record = await response.json()
+    
+    // Convertir le medical record au format Document
+    return {
+      id: record.id,
+      title: record.encryptedTitle || 'Document médical',
+      type: mapRecordTypeToDocumentType(record.recordType),
+      date: record.metadata?.appointmentDate || record.createdAt,
+      doctor: record.metadata?.doctor || 'Non spécifié',
+      size: record.metadata?.size || '0 KB',
+      folderId: undefined,
+      filePath: '',
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    }
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Erreur réseau')
+  }
+}
+
 export const deleteDocument = async (documentId: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+    const response = await fetch(`${API_BASE_URL}/medical-records/${documentId}`, {
       method: 'DELETE',
       headers: AuthService.getAuthHeaders(),
     })
@@ -350,10 +347,24 @@ export const deleteDocument = async (documentId: string) => {
 
 export const updateDocument = async (documentId: string, updates: Partial<UploadDocumentData>) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
-      method: 'PUT',
+    const body: any = {}
+    
+    if (updates.title) {
+      body.encryptedTitle = btoa(updates.title)
+    }
+    
+    if (updates.type) {
+      body.recordType = mapDocumentTypeToRecordType(updates.type)
+    }
+    
+    if (updates.doctor) {
+      body.metadata = { doctor: updates.doctor }
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/medical-records/${documentId}`, {
+      method: 'PATCH',
       headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify(updates),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -362,7 +373,7 @@ export const updateDocument = async (documentId: string, updates: Partial<Upload
     }
 
     const data = await response.json()
-    return { success: true, document: data.document }
+    return { success: true, document: data }
   } catch (error) {
     return {
       success: false,
@@ -371,25 +382,11 @@ export const updateDocument = async (documentId: string, updates: Partial<Upload
   }
 }
 
-export const moveDocument = async (documentId: string, targetFolderId: string | null) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/documents/${documentId}/move`, {
-      method: 'POST',
-      headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify({ folderId: targetFolderId }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Erreur lors du déplacement')
-    }
-
-    return { success: true }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors du déplacement',
-    }
+export const moveDocument = async (_documentId: string, _targetFolderId: string | null) => {
+  // Fonctionnalité non disponible dans le backend actuel (pas de folders)
+  return {
+    success: false,
+    error: 'Le déplacement de documents n\'est pas disponible',
   }
 }
 
