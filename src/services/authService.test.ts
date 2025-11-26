@@ -141,7 +141,12 @@ describe('AuthService', () => {
         })
       )
 
-      expect(result).toEqual({ token: mockToken, user: mockUser })
+      expect(result).toEqual({
+        accessToken: mockToken,
+        user: mockUser,
+        vaultSalt: validVaultSalt,
+        refreshToken: 'refresh-token'
+      })
       expect(AuthService.getToken()).toBe(mockToken)
       expect(AuthService.getUser()).toEqual(mockUser)
     })
@@ -196,7 +201,11 @@ describe('AuthService', () => {
         })
       )
 
-      expect(result).toEqual({ token: mockToken, user: mockUser })
+      expect(result).toEqual({
+        accessToken: mockToken,
+        user: mockUser,
+        vaultSalt: validVaultSalt
+      })
       // Vérifie que le token n'est PAS stocké après signup
       expect(AuthService.getToken()).toBeNull()
     })
