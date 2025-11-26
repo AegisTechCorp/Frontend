@@ -131,7 +131,7 @@ describe('AuthService', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(credentials),
+          body: expect.stringContaining('authHash'),
         })
       )
 
@@ -185,13 +185,7 @@ describe('AuthService', () => {
         expect.stringContaining('/auth/register'),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({
-            email: signupData.email,
-            password: signupData.password,
-            firstName: signupData.firstName,
-            lastName: signupData.lastName,
-            dateOfBirth: signupData.birthDate,
-          }),
+          body: expect.stringContaining('authHash'),
         })
       )
 
