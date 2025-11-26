@@ -29,7 +29,18 @@ export default defineConfig({
     }
   },
   build: {
-    target: 'esnext'
+    target: 'esnext',
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          'argon2': ['argon2-browser']
+        }
+      }
+    }
+  },
+  worker: {
+    format: 'es'
   },
   test: {
     globals: true,
