@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { Shield, Lock, ArrowLeft, Fingerprint, AlertCircle } from "lucide-react"
+import { unlockFolderWithPin, unlockFolderWithBiometric } from "../api/dashboardApi"
 
 export default function UnlockFolderPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const folderId = searchParams.get("folder")
+  const folderId = searchParams.get("id") || ""
   const unlockMethod = searchParams.get("method") || "pin"
 
   const [pin, setPin] = useState("")
@@ -25,31 +26,61 @@ export default function UnlockFolderPage() {
   }
 
   const handleUnlock = async (pinValue: string = pin) => {
+    if (!folderId) {
+      setError("ID du dossier manquant")
+      return
+    }
+
     setIsUnlocking(true)
     setError("")
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    // Demo: accept "1234" as correct PIN
-    if (pinValue === "1234") {
-      navigate(`/dashboard?folder=${folderId}`)
-    } else {
-      setError("Code PIN incorrect")
+    try {
+      const result = await unlockFolderWithPin(folderId, pinValue)
+      
+      if (result.success) {
+        // Stocker le token de déverrouillage si nécessaire
+        if (result.token) {
+          sessionStorage.setItem(`folder_unlock_${folderId}`, result.token)
+        }
+        navigate(`/dashboard?folder=${folderId}`)
+      } else {
+        setError(result.error || "Code PIN incorrect")
+        setPin("")
+        setIsUnlocking(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de déverrouillage")
       setPin("")
       setIsUnlocking(false)
     }
   }
 
   const handleBiometricUnlock = async () => {
+    if (!folderId) {
+      setError("ID du dossier manquant")
+      return
+    }
+
     setIsUnlocking(true)
     setError("")
 
-    // Simulate biometric authentication
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Demo: always succeed for biometric
-    navigate(`/dashboard?folder=${folderId}`)
+    try {
+      const result = await unlockFolderWithBiometric(folderId)
+      
+      if (result.success) {
+        // Stocker le token de déverrouillage si nécessaire
+        if (result.token) {
+          sessionStorage.setItem(`folder_unlock_${folderId}`, result.token)
+        }
+        navigate(`/dashboard?folder=${folderId}`)
+      } else {
+        setError(result.error || "Erreur d'authentification biométrique")
+        setIsUnlocking(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de déverrouillage")
+      setIsUnlocking(false)
+    }
   }
 
   return (
