@@ -1,4 +1,5 @@
 import AuthService from '../services/authService'
+import { encryptData, decryptData } from '../utils/crypto'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
@@ -6,7 +7,7 @@ export type DocumentType = 'exam' | 'prescription' | 'imaging' | 'allergy' | 'ot
 
 export type Document = {
   id: string
-  title: string
+  title: string // encryptedTitle déchiffré côté client
   type: DocumentType
   date: string
   doctor: string
@@ -15,6 +16,9 @@ export type Document = {
   filePath: string
   createdAt: string
   updatedAt: string
+  encryptedData?: string // Données chiffrées du backend
+  recordType?: string // Type original du backend
+  metadata?: Record<string, any> // Métadonnées du backend
 }
 
 export type SecureFolder = {
@@ -71,7 +75,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     }
 
     const data = await response.json()
-    // Adapter les statistiques du backend au format attendu
+
     return {
       totalDocuments: data.totalRecords || 0,
       totalFolders: 0, // Pas de dossiers dans le backend actuel
@@ -84,16 +88,13 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 }
 
 export const getSecureFolders = async (): Promise<SecureFolder[]> => {
-  // Le backend n'a pas de concept de "folders" pour l'instant
-  // Retourner un tableau vide en attendant l'implémentation
+
   return []
 }
 
-/**
- * Créer un nouveau dossier sécurisé
- */
+
 export const createSecureFolder = async (_folderData: CreateFolderData) => {
-  // Fonctionnalité non disponible dans le backend actuel
+
   return {
     success: false,
     error: 'La création de dossiers n\'est pas encore implémentée',
@@ -101,7 +102,7 @@ export const createSecureFolder = async (_folderData: CreateFolderData) => {
 }
 
 export const updateSecureFolder = async (_folderId: string, _updates: Partial<CreateFolderData>) => {
-  // Fonctionnalité non disponible dans le backend actuel
+
   return {
     success: false,
     error: 'La gestion des dossiers sécurisés n\'est pas disponible',
@@ -109,7 +110,7 @@ export const updateSecureFolder = async (_folderId: string, _updates: Partial<Cr
 }
 
 export const deleteSecureFolder = async (_folderId: string) => {
-  // Fonctionnalité non disponible dans le backend actuel
+
   return {
     success: false,
     error: 'La gestion des dossiers sécurisés n\'est pas disponible',
@@ -117,7 +118,7 @@ export const deleteSecureFolder = async (_folderId: string) => {
 }
 
 export const unlockFolderWithPin = async (_folderId: string, _pin: string): Promise<UnlockFolderResponse> => {
-  // Fonctionnalité non disponible dans le backend actuel
+
   return {
     success: false,
     error: 'Le déverrouillage de dossiers n\'est pas disponible',
@@ -125,14 +126,13 @@ export const unlockFolderWithPin = async (_folderId: string, _pin: string): Prom
 }
 
 export const unlockFolderWithBiometric = async (_folderId: string): Promise<UnlockFolderResponse> => {
-  // Fonctionnalité non disponible dans le backend actuel
+
   return {
     success: false,
     error: 'Le déverrouillage de dossiers n\'est pas disponible',
   }
 }
 
-// Fonction helper pour mapper les types
 function mapRecordTypeToDocumentType(recordType: string): DocumentType {
   const mapping: Record<string, DocumentType> = {
     'ordonnance': 'prescription',
@@ -158,20 +158,41 @@ export const getDocuments = async (): Promise<Document[]> => {
     }
 
     const records = await response.json()
-    
-    // Convertir les medical records au format Document
-    return records.map((record: any) => ({
-      id: record.id,
-      title: record.encryptedTitle || 'Document médical',
-      type: mapRecordTypeToDocumentType(record.recordType),
-      date: record.metadata?.appointmentDate || record.createdAt,
-      doctor: record.metadata?.doctor || 'Non spécifié',
-      size: record.metadata?.size || '0 KB',
-      folderId: undefined,
-      filePath: '',
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
+
+    const masterKey = sessionStorage.getItem('aegis_master_key')
+
+    const documents = await Promise.all(records.map(async (record: any) => {
+      let title = 'Document médical'
+
+      if (record.encryptedTitle && masterKey) {
+        try {
+          const decryptedTitle = await decryptData(record.encryptedTitle, masterKey)
+          if (decryptedTitle) {
+            title = decryptedTitle
+          }
+        } catch (error) {
+          console.warn('Impossible de déchiffrer le titre du document:', record.id)
+        }
+      }
+      
+      return {
+        id: record.id,
+        title,
+        type: mapRecordTypeToDocumentType(record.recordType),
+        date: record.metadata?.appointmentDate || record.createdAt,
+        doctor: record.metadata?.doctor || 'Non spécifié',
+        size: record.metadata?.size || '0 KB',
+        folderId: undefined,
+        filePath: '',
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        encryptedData: record.encryptedData,
+        recordType: record.recordType,
+        metadata: record.metadata,
+      }
     }))
+    
+    return documents
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
@@ -179,17 +200,15 @@ export const getDocuments = async (): Promise<Document[]> => {
 
 export const searchDocuments = async (query: string, filter?: DocumentType | 'all'): Promise<Document[]> => {
   try {
-    // Récupérer tous les documents et filtrer côté client
+
     const allDocuments = await getDocuments()
     
     let filtered = allDocuments
-    
-    // Filtrer par type si nécessaire
+
     if (filter && filter !== 'all') {
       filtered = filtered.filter(doc => doc.type === filter)
     }
-    
-    // Filtrer par requête de recherche
+
     if (query) {
       const lowerQuery = query.toLowerCase()
       filtered = filtered.filter(doc => 
@@ -204,7 +223,6 @@ export const searchDocuments = async (query: string, filter?: DocumentType | 'al
   }
 }
 
-// Mapper DocumentType vers RecordType du backend
 function mapDocumentTypeToRecordType(docType: DocumentType): string {
   const mapping: Record<DocumentType, string> = {
     'prescription': 'ordonnance',
@@ -218,14 +236,19 @@ function mapDocumentTypeToRecordType(docType: DocumentType): string {
 
 export const uploadDocument = async (documentData: UploadDocumentData) => {
   try {
-    // Pour l'instant, on simule le chiffrement côté client
-    // En production, il faudrait vraiment chiffrer les données avec la clé de l'utilisateur
-    const encryptedData = btoa(JSON.stringify({
+
+    const masterKey = sessionStorage.getItem('aegis_master_key')
+    if (!masterKey) {
+      throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
+    }
+
+    const encryptedData = await encryptData({
       file: documentData.file.name,
       content: 'Contenu chiffré du fichier',
-    }))
+      type: documentData.type,
+    }, masterKey)
     
-    const encryptedTitle = btoa(documentData.title)
+    const encryptedTitle = await encryptData(documentData.title, masterKey)
     
     const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'POST',
@@ -257,12 +280,10 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
   }
 }
 
-/**
- * Télécharger un document
- */
+
 export const downloadDocument = async (documentId: string) => {
   try {
-    // Récupérer les données du document
+
     const response = await fetch(`${API_BASE_URL}/medical-records/${documentId}`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
@@ -273,12 +294,21 @@ export const downloadDocument = async (documentId: string) => {
     }
 
     const record = await response.json()
+
+    const masterKey = sessionStorage.getItem('aegis_master_key')
+    if (!masterKey) {
+      throw new Error('Clé de chiffrement non disponible')
+    }
+
+    const decryptedDataStr = await decryptData(record.encryptedData, masterKey)
+    if (!decryptedDataStr) {
+      throw new Error('Échec du déchiffrement des données')
+    }
+    const decryptedData = JSON.parse(decryptedDataStr)
     
-    // Déchiffrer les données (simulation)
-    const decryptedData = JSON.parse(atob(record.encryptedData))
-    const decryptedTitle = atob(record.encryptedTitle || 'document')
-    
-    // Créer un fichier texte avec les données
+    const decryptedTitleStr = await decryptData(record.encryptedTitle || '', masterKey)
+    const decryptedTitle = decryptedTitleStr || 'document'
+
     const content = JSON.stringify(decryptedData, null, 2)
     const blob = new Blob([content], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
@@ -311,11 +341,24 @@ export const getDocumentById = async (documentId: string): Promise<Document> => 
     }
 
     const record = await response.json()
+
+    let title = 'Document médical'
+    const masterKey = sessionStorage.getItem('aegis_master_key')
     
-    // Convertir le medical record au format Document
+    if (record.encryptedTitle && masterKey) {
+      try {
+        const decryptedTitle = await decryptData(record.encryptedTitle, masterKey)
+        if (decryptedTitle) {
+          title = decryptedTitle
+        }
+      } catch (error) {
+        console.warn('Impossible de déchiffrer le titre')
+      }
+    }
+
     return {
       id: record.id,
-      title: record.encryptedTitle || 'Document médical',
+      title,
       type: mapRecordTypeToDocumentType(record.recordType),
       date: record.metadata?.appointmentDate || record.createdAt,
       doctor: record.metadata?.doctor || 'Non spécifié',
@@ -324,6 +367,9 @@ export const getDocumentById = async (documentId: string): Promise<Document> => 
       filePath: '',
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
+      encryptedData: record.encryptedData,
+      recordType: record.recordType,
+      metadata: record.metadata,
     }
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
@@ -354,9 +400,14 @@ export const deleteDocument = async (documentId: string) => {
 export const updateDocument = async (documentId: string, updates: Partial<UploadDocumentData>) => {
   try {
     const body: any = {}
-    
+
+    const masterKey = sessionStorage.getItem('aegis_master_key')
+    if (!masterKey) {
+      throw new Error('Clé de chiffrement non disponible')
+    }
+
     if (updates.title) {
-      body.encryptedTitle = btoa(updates.title)
+      body.encryptedTitle = await encryptData(updates.title, masterKey)
     }
     
     if (updates.type) {
@@ -389,7 +440,7 @@ export const updateDocument = async (documentId: string, updates: Partial<Upload
 }
 
 export const moveDocument = async (_documentId: string, _targetFolderId: string | null) => {
-  // Fonctionnalité non disponible dans le backend actuel (pas de folders)
+
   return {
     success: false,
     error: 'Le déplacement de documents n\'est pas disponible',

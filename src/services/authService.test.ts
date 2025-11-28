@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import AuthService, { type User, type LoginCredentials, type SignupData } from './authService'
 
-// Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
 
@@ -23,7 +22,6 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
 
-// Mock fetch
 globalThis.fetch = vi.fn() as any
 
 describe('AuthService', () => {
@@ -40,7 +38,7 @@ describe('AuthService', () => {
   const mockToken = 'mock-jwt-token-123'
 
   beforeEach(() => {
-    // Reset localStorage et fetch avant chaque test
+
     localStorageMock.clear()
     vi.clearAllMocks()
   })
@@ -131,7 +129,7 @@ describe('AuthService', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: expect.stringContaining('authHash'),
+          body: expect.stringContaining('email'),
         })
       )
 
@@ -185,12 +183,14 @@ describe('AuthService', () => {
         expect.stringContaining('/auth/register'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('authHash'),
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: expect.stringContaining('email'),
         })
       )
 
       expect(result).toEqual({ token: mockToken, user: mockUser })
-      // Vérifie que le token n'est PAS stocké après signup
+
       expect(AuthService.getToken()).toBeNull()
     })
 

@@ -1,6 +1,5 @@
-import { deriveMasterKey, deriveAuthKey, hashAuthKey } from '../utils/crypto'
+import { deriveMasterKey } from '../utils/crypto'
 
-// Types pour l'authentification
 export interface User {
   id: string
   email: string
@@ -14,6 +13,7 @@ export interface User {
 export interface AuthResponse {
   token: string
   user: User
+  vaultSalt?: string
 }
 
 export interface LoginCredentials {
@@ -37,10 +37,8 @@ class AuthService {
   private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
+
     const masterKey = await deriveMasterKey(data.password, data.email)
-    const authKey = await deriveAuthKey(data.password, data.email)
-    const authHash = await hashAuthKey(authKey)
 
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
@@ -50,7 +48,7 @@ class AuthService {
       credentials: 'include', // Pour les cookies HttpOnly
       body: JSON.stringify({
         email: data.email,
-        authHash: authHash,
+        password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
@@ -63,17 +61,19 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Stocker la masterKey localement (ne pas l'envoyer au serveur)
+
     sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    if (result.vaultSalt) {
+      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
+    }
     
-    return { token: result.accessToken, user: result.user }
+    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
+
     const masterKey = await deriveMasterKey(credentials.password, credentials.email)
-    const authKey = await deriveAuthKey(credentials.password, credentials.email)
-    const authHash = await hashAuthKey(authKey)
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -83,7 +83,7 @@ class AuthService {
       credentials: 'include',
       body: JSON.stringify({
         email: credentials.email,
-        authHash: authHash,
+        password: credentials.password,
       }),
     })
 
@@ -93,11 +93,15 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Stocker le token, l'utilisateur et la masterKey
+
     this.setAuth(result.accessToken, result.user)
     sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    if (result.vaultSalt) {
+      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
+    }
     
-    return { token: result.accessToken, user: result.user }
+    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
 
   static logout(): void {
@@ -150,8 +154,7 @@ class AuthService {
     if (!token) return false
 
     try {
-      // Pour l'instant, on vérifie simplement si le token existe
-      // Le backend n'a pas encore d'endpoint /verify
+
       return true
     } catch {
       return false

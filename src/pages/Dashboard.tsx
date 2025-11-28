@@ -11,9 +11,7 @@ import {
   Eye,
   Trash2,
   Plus,
-  User,
   Bell,
-  LogOut,
   Activity,
   Heart,
   Stethoscope,
@@ -22,11 +20,7 @@ import {
   FolderPlus,
   Folder,
   Camera,
-  Settings,
   Loader2,
-  Image,
-  AlertCircle,
-  Clock,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react"
@@ -44,10 +38,8 @@ import {
   type DashboardStats,
   type DocumentType,
 } from "../api/dashboardApi"
-import { logoutUser } from "../api/authApi"
-import AuthService from "../services/authService"
+import { Layout } from "../components/Layout"
 
-// Mapping des icônes
 const iconMap: Record<string, LucideIcon> = {
   Stethoscope,
   Pill,
@@ -61,12 +53,10 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'prescriptions' | 'imaging' | 'allergies' | 'history'>('overview')
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   
-  // États pour le formulaire de création de dossier
   const [newFolderData, setNewFolderData] = useState({
     name: '',
     icon: 'Folder',
@@ -75,7 +65,6 @@ export default function DashboardPage() {
     pin: '',
   })
   
-  // États pour le formulaire d'upload
   const [uploadData, setUploadData] = useState({
     title: '',
     type: 'other' as DocumentType,
@@ -84,35 +73,28 @@ export default function DashboardPage() {
     file: null as File | null,
   })
   
-  // États pour les données
   const [folders, setFolders] = useState<SecureFolder[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Obtenir les infos utilisateur
-  const currentUser = AuthService.getUser()
-
-  // Sidebar items
-  const sidebarItems = [
-    { id: 'overview', icon: Activity, label: 'Vue d\'ensemble' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'prescriptions', icon: Pill, label: 'Ordonnances' },
-    { id: 'imaging', icon: Image, label: 'Imagerie' },
-    { id: 'allergies', icon: AlertCircle, label: 'Allergies' },
-    { id: 'history', icon: Clock, label: 'Historique' },
-  ]
+  const tabLabels: Record<string, string> = {
+    overview: 'Vue d\'ensemble',
+    documents: 'Documents',
+    prescriptions: 'Ordonnances',
+    imaging: 'Imagerie',
+    allergies: 'Allergies',
+    history: 'Historique',
+  }
 
   useEffect(() => {
     loadDashboardData()
   }, [])
 
-  // Fonction pour charger toutes les données du dashboard
   const loadDashboardData = async () => {
     try {
       setLoading(true)
 
-      // Charger les données en parallèle - ignorer les erreurs individuelles pour l'instant
       const results = await Promise.allSettled([
         getDashboardStats(),
         getSecureFolders(),
@@ -122,18 +104,13 @@ export default function DashboardPage() {
       if (results[0].status === 'fulfilled') setStats(results[0].value)
       if (results[1].status === 'fulfilled') setFolders(results[1].value)
       if (results[2].status === 'fulfilled') setDocuments(results[2].value)
-
-      // Ne pas afficher d'erreur - c'est normal si l'utilisateur vient de créer son compte
-      // Les données seront vides jusqu'à ce qu'il ajoute des documents et dossiers
     } catch (err) {
       console.error('Erreur lors du chargement:', err)
-      // Ne pas afficher d'erreur critique
     } finally {
       setLoading(false)
     }
   }
 
-  // Effet pour la recherche et le filtrage
   useEffect(() => {
     const performSearch = async () => {
       if (searchQuery.trim()) {
@@ -142,16 +119,13 @@ export default function DashboardPage() {
           setDocuments(results)
         } catch (err) {
           console.error('Erreur de recherche:', err)
-          // Ne pas afficher l'erreur, juste garder les documents actuels
         }
       } else {
-        // Recharger les documents si pas de recherche
         try {
           const documentsData = await getDocuments()
           setDocuments(documentsData)
         } catch (err) {
           console.error('Erreur lors du chargement:', err)
-          // Ne pas afficher l'erreur, garder les documents vides
         }
       }
     }
@@ -160,18 +134,12 @@ export default function DashboardPage() {
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, selectedFilter])
 
-  const handleLogout = () => {
-    logoutUser()
-    navigate('/login')
-  }
-
   const handleDeleteDocument = async (documentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return
     
     try {
       const result = await deleteDocument(documentId)
       if (result.success) {
-        // Recharger les documents après suppression
         await loadDashboardData()
       } else {
         alert(result.error || 'Erreur lors de la suppression')
@@ -336,7 +304,6 @@ export default function DashboardPage() {
     ? documents.filter((doc) => doc.folderId === selectedFolder)
     : documents
 
-  // État de chargement
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
@@ -349,125 +316,24 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col fixed h-screen z-50
-        transform transition-transform duration-300 ease-in-out
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
-      `}>
-        {/* Logo */}
-        {/* <div className="p-4 lg:p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-400" strokeWidth={2.5} />
-              <Lock className="w-3 h-3 lg:w-4 lg:h-4 text-blue-400 absolute -bottom-1 -right-1" />
-            </div>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold">Aegis</h1>
-              <p className="text-xs text-slate-400 hidden sm:block">Dossier médical sécurisé</p>
-            </div>
+    <Layout
+      currentPage="dashboard"
+      onTabChange={(tabId) => setActiveTab(tabId as typeof activeTab)}
+      activeTab={activeTab}
+      showHeader={true}
+      headerContent={
+        <>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg lg:text-2xl font-bold text-slate-900 truncate">
+              {tabLabels[activeTab] || 'Vue d\'ensemble'}
+            </h2>
+            <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
+              Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
-          {/* Close button mobile 
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden p-2 hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div> */}
 
-        {/* User info */}
-        <div className="p-4 lg:p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm lg:text-base truncate">{currentUser?.firstName} {currentUser?.lastName}</p>
-              <p className="text-xs lg:text-sm text-slate-400 truncate">{currentUser?.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
-          {sidebarItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id as typeof activeTab)
-                setMobileMenuOpen(false) // Close mobile menu on click
-              }}
-              className={`w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all text-sm lg:text-base ${
-                activeTab === item.id
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <item.icon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="font-medium truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Bottom actions */}
-        <div className="p-2 lg:p-4 border-t border-slate-700 space-y-1">
-          <button 
-            onClick={() => {
-              navigate('/settings')
-              setMobileMenuOpen(false)
-            }}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base"
-          >
-            <Settings className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Paramètres</span>
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base"
-          >
-            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 lg:ml-72">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-          <div className="px-4 lg:px-8 py-3 lg:py-4">
-            <div className="flex items-center justify-between mb-2 lg:mb-0">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* Mobile menu button */}
-                <button
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Menu className="w-6 h-6 text-slate-600" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg lg:text-2xl font-bold text-slate-900 truncate">
-                    {sidebarItems.find(item => item.id === activeTab)?.label || 'Vue d\'ensemble'}
-                  </h2>
-                  <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
-                    Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 lg:gap-4">
-                {/* Search - Hidden on mobile, shown on tablet+ */}
+          <div className="flex items-center gap-2 lg:gap-4">
+                {}
                 <div className="relative hidden md:block">
                   <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -479,10 +345,10 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                {/* Mobile search button */}
+                {}
                 <button
                   onClick={() => {
-                    // On mobile, you could open a search modal or focus the search
+
                     const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement
                     if (searchInput) searchInput.focus()
                   }}
@@ -491,7 +357,7 @@ export default function DashboardPage() {
                   <Search className="w-5 h-5 text-slate-600" />
                 </button>
 
-                {/* Upload button */}
+                {}
                 <button 
                   onClick={() => setShowUploadModal(true)}
                   className="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm lg:text-base"
@@ -501,36 +367,38 @@ export default function DashboardPage() {
                   <span className="sm:hidden">Ajouter</span>
                 </button>
 
-                {/* Notifications */}
-                <button className="relative p-2 hover:bg-slate-100 rounded-xl transition-all flex-shrink-0">
+                {}
+                <button 
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 hover:bg-slate-100 rounded-xl transition-all flex-shrink-0"
+                >
                   <Bell className="w-5 h-5 lg:w-6 lg:h-6 text-slate-600" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-              </div>
-            </div>
+          </div>
 
-            {/* Mobile search bar */}
-            <div className="md:hidden mt-2">
-              <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          {}
+          <div className="md:hidden mt-2">
+            <div className="relative">
+              <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher..."
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
           </div>
-      </header>
-
-        {/* Content */}
-        <div className="p-4 lg:p-8">
+        </>
+      }
+    >
+      {}
+      <div className="p-4 lg:p-8">
           {activeTab === 'overview' && (
             <div className="space-y-6 lg:space-y-8">
 
-              {/* Stats Grid */}
+              {}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                 {displayStats.map((stat, i) => (
                   <div
@@ -550,7 +418,7 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* Secure Folders Section */}
+              {}
               <div className="mb-6 lg:mb-8">
                 <div className="flex items-center justify-between mb-4 lg:mb-6">
                   <h2 className="text-xl lg:text-2xl font-bold text-slate-900">Dossiers sécurisés</h2>
@@ -574,7 +442,7 @@ export default function DashboardPage() {
                   if (selectedFolder === folder.id) {
                     setSelectedFolder(null)
                   } else {
-                    // En production, rediriger vers la page de déverrouillage
+
                     navigate(`/unlock-folder?id=${folder.id}`)
                   }
                 }}
@@ -603,10 +471,10 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Actions bar */}
+              {}
               <div className="bg-white rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-slate-200 mb-6 lg:mb-8 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
-                  {/* Search */}
+                  {}
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-slate-400" />
@@ -620,7 +488,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Filter */}
+                  {}
                   <div className="flex items-center gap-2 lg:gap-3">
                     <div className="relative flex-1 lg:flex-none">
                       <Filter className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-slate-400 pointer-events-none" />
@@ -637,7 +505,7 @@ export default function DashboardPage() {
                       </select>
                     </div>
 
-                    {/* Upload button */}
+                    {}
                     <button 
                       onClick={() => setShowUploadModal(true)}
                       className="px-4 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap text-sm lg:text-base"
@@ -650,7 +518,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Documents list */}
+              {}
               <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="p-4 lg:p-6 border-b border-slate-200">
                   <h2 className="text-lg lg:text-xl font-bold text-slate-900">
@@ -674,14 +542,14 @@ export default function DashboardPage() {
                       style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.05}s both` }}
                     >
                       <div className="flex items-start gap-3 lg:gap-4">
-                        {/* Icon */}
+                        {}
                         <div
                           className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${getDocumentColor(doc.type)} rounded-xl flex items-center justify-center flex-shrink-0 text-white`}
                         >
                           {getDocumentIcon(doc.type)}
                         </div>
 
-                        {/* Info */}
+                        {}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-1">
                             <h3 className="font-semibold text-sm lg:text-base text-slate-900 truncate">{doc.title}</h3>
@@ -700,7 +568,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        {/* Actions */}
+                        {}
                         <div className="flex items-center gap-1 lg:gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex-shrink-0">
                           <button 
                             onClick={() => navigate(`/document/${doc.id}`)}
@@ -730,7 +598,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Upload zone */}
+              {}
               <div 
                 className="mt-6 lg:mt-8 bg-white rounded-xl lg:rounded-2xl border-2 border-dashed border-slate-300 p-6 lg:p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer group"
                 onDragOver={handleDragOver}
@@ -749,7 +617,7 @@ export default function DashboardPage() {
 
           {activeTab === 'documents' && (
             <div className="space-y-6 lg:space-y-8">
-              {/* Documents list */}
+              {}
               <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="p-4 lg:p-6 border-b border-slate-200">
                   <h2 className="text-lg lg:text-xl font-bold text-slate-900">Tous les documents</h2>
@@ -808,10 +676,9 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
+      </div>
 
-      {/* Create Folder Modal */}
+      {}
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
           <div className="bg-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -911,7 +778,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Upload Document Modal */}
+      {}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
           <div className="bg-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1035,6 +902,6 @@ export default function DashboardPage() {
           }
         }
       `}</style>
-    </div>
+    </Layout>
   )
 }

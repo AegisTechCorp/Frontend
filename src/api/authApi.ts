@@ -164,9 +164,7 @@ export const updateUserProfile = async (data: Partial<SignupData>) => {
   }
 }
 
-/**
- * Supprimer le compte utilisateur
- */
+
 export const deleteAccount = async (password: string) => {
   try {
     const response = await fetch(`${AuthService.getApiUrl()}/auth/delete-account`, {

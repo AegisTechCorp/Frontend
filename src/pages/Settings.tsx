@@ -2,12 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock } from 'lucide-react'
 import { exportUserData, deleteUserAccount, updateNotificationSettings, getNotificationSettings } from '../api/userApi'
-import AuthService from '../services/authService'
-import { logoutUser } from '../api/authApi'
+import { Layout } from '../components/Layout'
 
 export default function Settings() {
-  const navigate = useNavigate()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [settings, setSettings] = useState({
     notifications: true,
     emailNotifications: true,
@@ -15,24 +12,6 @@ export default function Settings() {
     language: 'fr',
     autoBackup: true,
   })
-
-  // Obtenir les infos utilisateur
-  const currentUser = AuthService.getUser()
-
-  // Sidebar items
-  const sidebarItems = [
-    { id: 'overview', icon: Activity, label: 'Vue d\'ensemble' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'prescriptions', icon: Pill, label: 'Ordonnances' },
-    { id: 'imaging', icon: Image, label: 'Imagerie' },
-    { id: 'allergies', icon: AlertCircle, label: 'Allergies' },
-    { id: 'history', icon: Clock, label: 'Historique' },
-  ]
-
-  const handleLogout = () => {
-    logoutUser()
-    navigate('/login')
-  }
 
   useEffect(() => {
     loadSettings()
@@ -58,7 +37,6 @@ export default function Settings() {
       [key]: newValue,
     })
 
-    // Sauvegarder les paramètres de notification
     if (key === 'notifications' || key === 'emailNotifications') {
       await updateNotificationSettings({
         pushNotifications: key === 'notifications' ? newValue : settings.notifications,
@@ -99,129 +77,21 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col fixed h-screen z-50
-        transform transition-transform duration-300 ease-in-out
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
-      `}>
-        {/* Logo */}
-        <div className="p-4 lg:p-6 border-b border-slate-700 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-400" strokeWidth={2.5} />
-              <Lock className="w-3 h-3 lg:w-4 lg:h-4 text-blue-400 absolute -bottom-1 -right-1" />
-            </div>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold">Aegis</h1>
-              <p className="text-xs text-slate-400 hidden sm:block">Dossier médical sécurisé</p>
-            </div>
-          </div>
-          {/* Close button mobile */}
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden p-2 hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <Layout
+      currentPage="settings"
+      showHeader={true}
+      headerContent={
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg lg:text-2xl font-bold text-slate-900">Paramètres</h2>
+          <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
+            Configuration du compte
+          </p>
         </div>
-
-        {/* User info */}
-        <div className="p-4 lg:p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm lg:text-base truncate">{currentUser?.firstName} {currentUser?.lastName}</p>
-              <p className="text-xs lg:text-sm text-slate-400 truncate">{currentUser?.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
-          {sidebarItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'overview') {
-                  navigate('/dashboard')
-                } else {
-                  // Navigate to other sections if they exist
-                  navigate(`/dashboard?tab=${item.id}`)
-                }
-                setMobileMenuOpen(false)
-              }}
-              className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all text-sm lg:text-base text-slate-300 hover:bg-slate-700 hover:text-white"
-            >
-              <item.icon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="font-medium truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Bottom actions */}
-        <div className="p-2 lg:p-4 border-t border-slate-700 space-y-1">
-          <button 
-            onClick={() => {
-              setMobileMenuOpen(false)
-            }}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base bg-gradient-to-r from-blue-600 to-cyan-600"
-          >
-            <SettingsIcon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Paramètres</span>
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base"
-          >
-            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 lg:ml-72">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-          <div className="px-4 lg:px-8 py-3 lg:py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* Mobile menu button */}
-                <button
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Menu className="w-6 h-6 text-slate-600" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg lg:text-2xl font-bold text-slate-900">Paramètres</h2>
-                  <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
-                    Configuration du compte
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="p-4 lg:p-8">
-          <div className="max-w-4xl mx-auto">
-            {/* Notifications */}
-            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
+      }
+    >
+      <div className="max-w-4xl mx-auto">
+        {}
+        <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Bell className="w-6 h-6 text-blue-600 mr-3" />
             <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
@@ -268,7 +138,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Apparence */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Moon className="w-6 h-6 text-blue-600 mr-3" />
@@ -295,7 +165,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Langue */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Globe className="w-6 h-6 text-blue-600 mr-3" />
@@ -323,7 +193,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Documents médicaux */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
@@ -365,7 +235,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Actions dangereuses */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Gestion des données médicales</h2>
           
@@ -397,9 +267,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   )
 }
