@@ -80,7 +80,7 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      // Appel à l'API backend via AuthService
+
       const response = await AuthService.signup({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -91,8 +91,8 @@ export default function SignupPage() {
 
       console.log("Inscription réussie:", response.user)
 
-      // Redirection vers la page de login pour se connecter
-      navigate("/login", { state: { message: "Inscription réussie ! Veuillez vous connecter." } })
+      // Redirection vers le dashboard
+      navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
     } finally {
@@ -116,7 +116,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated background */}
+      {}
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute top-20 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
@@ -128,7 +128,7 @@ export default function SignupPage() {
         />
       </div>
 
-      {/* Logo top left */}
+      {}
       <Link to="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
         <div className="relative">
           <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
@@ -139,10 +139,10 @@ export default function SignupPage() {
         </span>
       </Link>
 
-      {/* Signup card */}
+      {}
       <div className="relative w-full max-w-2xl" style={{ animation: "fadeInUp 0.8s ease-out" }}>
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200/50 backdrop-blur-xl">
-          {/* Header */}
+          {}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4">
               <User className="w-8 h-8 text-white" />
@@ -151,7 +151,7 @@ export default function SignupPage() {
             <p className="text-slate-600">Rejoignez des milliers d'utilisateurs qui protègent leurs données</p>
           </div>
 
-          {/* Error message */}
+          {}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -162,9 +162,9 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Form */}
+          {}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name fields */}
+            {}
             <div className="grid md:grid-cols-2 gap-5">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-semibold text-slate-700 mb-2">
@@ -205,7 +205,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Email and birthdate */}
+            {}
             <div className="grid md:grid-cols-2 gap-5">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-2">
@@ -245,7 +245,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Password fields */}
+            {}
             <div className="grid md:grid-cols-2 gap-5">
               <div>
                 <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
@@ -273,7 +273,7 @@ export default function SignupPage() {
                   </button>
                 </div>
                 
-                {/* Password strength indicator */}
+                {}
                 {formData.password && (
                   <div className="mt-2">
                     <div className="flex gap-1">
@@ -324,7 +324,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Password requirements */}
+            {}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
               <p className="text-sm font-semibold text-slate-700 mb-2">Votre mot de passe doit contenir :</p>
               <div className="space-y-1">
@@ -342,7 +342,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Terms and conditions */}
+            {}
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
@@ -383,7 +383,7 @@ export default function SignupPage() {
             </button>
           </form>
 
-          {/* Login link */}
+          {}
           <p className="text-center mt-8 text-slate-600">
             Déjà un compte ?{" "}
             <Link to="/login" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
@@ -392,7 +392,7 @@ export default function SignupPage() {
           </p>
         </div>
 
-        {/* Security badge */}
+        {}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-lg">
             <Shield className="w-4 h-4 text-green-600" />

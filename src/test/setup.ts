@@ -4,7 +4,6 @@ import * as matchers from '@testing-library/jest-dom/matchers'
 
 expect.extend(matchers)
 
-// Nettoie après chaque test pour éviter les fuites mémoire
 afterEach(() => {
   cleanup()
 })

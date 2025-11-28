@@ -2,9 +2,7 @@ import AuthService from '../services/authService'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
-/**
- * API pour la gestion des notifications
- */
+
 
 export type NotificationType = 'info' | 'warning' | 'success' | 'medical' | 'security'
 
@@ -25,9 +23,7 @@ export interface CreateNotificationData {
   message: string
 }
 
-/**
- * Récupérer toutes les notifications de l'utilisateur
- */
+
 export const getNotifications = async (filter?: 'all' | 'unread'): Promise<Notification[]> => {
   try {
     const params = filter === 'unread' ? '?read=false' : ''
@@ -47,9 +43,7 @@ export const getNotifications = async (filter?: 'all' | 'unread'): Promise<Notif
   }
 }
 
-/**
- * Marquer une notification comme lue
- */
+
 export const markNotificationAsRead = async (notificationId: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
@@ -71,9 +65,7 @@ export const markNotificationAsRead = async (notificationId: string) => {
   }
 }
 
-/**
- * Marquer toutes les notifications comme lues
- */
+
 export const markAllNotificationsAsRead = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
@@ -95,9 +87,7 @@ export const markAllNotificationsAsRead = async () => {
   }
 }
 
-/**
- * Supprimer une notification
- */
+
 export const deleteNotification = async (notificationId: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
@@ -119,9 +109,7 @@ export const deleteNotification = async (notificationId: string) => {
   }
 }
 
-/**
- * Supprimer toutes les notifications
- */
+
 export const deleteAllNotifications = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications`, {
@@ -143,9 +131,7 @@ export const deleteAllNotifications = async () => {
   }
 }
 
-/**
- * Créer une notification (pour les tests, normalement créée par le backend)
- */
+
 export const createNotification = async (data: CreateNotificationData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications`, {
@@ -169,9 +155,7 @@ export const createNotification = async (data: CreateNotificationData) => {
   }
 }
 
-/**
- * Récupérer le nombre de notifications non lues
- */
+
 export const getUnreadNotificationCount = async (): Promise<number> => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {

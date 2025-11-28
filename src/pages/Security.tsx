@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Lock, Smartphone, Shield, AlertTriangle } from 'lucide-react'
 import { enable2FA, verify2FA, disable2FA, revokeAllSessions } from '../api/userApi'
+import { Layout } from '../components/Layout'
 
 export default function Security() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
 
   const handleToggle2FA = async () => {
     if (!twoFactorEnabled) {
-      // Activer 2FA
+
       const result = await enable2FA()
       if (result.success) {
         const code = prompt('QR Code généré ! Entrez le code de vérification de votre application :')
@@ -25,7 +25,7 @@ export default function Security() {
         alert('❌ ' + result.error)
       }
     } else {
-      // Désactiver 2FA
+
       const password = prompt('Entrez votre mot de passe pour désactiver la 2FA :')
       if (password) {
         const result = await disable2FA(password)
@@ -40,30 +40,19 @@ export default function Security() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header with Logo */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
-              <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent tracking-tight">
-              Aegis
-            </span>
-          </Link>
+    <Layout
+      currentPage="security"
+      showHeader={true}
+      headerContent={
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Sécurité</h1>
+          <p className="text-sm text-slate-600 mt-1">Authentification et protection des données</p>
         </div>
-      </header>
-      
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sécurité</h1>
-          <p className="text-gray-600">Authentification et protection des données</p>
-        </div>
+      }
+    >
+      <div className="max-w-4xl mx-auto">
 
-        {/* Authentification à deux facteurs */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
@@ -116,7 +105,7 @@ export default function Security() {
           )}
         </div>
 
-        {/* Chiffrement des données */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center mb-6">
             <Lock className="w-6 h-6 text-blue-600 mr-3" />
@@ -152,7 +141,7 @@ export default function Security() {
           </div>
         </div>
 
-        {/* Sessions actives */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="flex items-center mb-6">
             <Shield className="w-6 h-6 text-blue-600 mr-3" />
@@ -193,6 +182,6 @@ export default function Security() {
           </button>
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }
