@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock, Search, Upload } from 'lucide-react'
+import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock } from 'lucide-react'
 import { exportUserData, deleteUserAccount, updateNotificationSettings, getNotificationSettings } from '../api/userApi'
 import AuthService from '../services/authService'
 import { logoutUser } from '../api/authApi'
