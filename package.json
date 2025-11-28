@@ -14,9 +14,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "argon2-browser": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "hash-wasm": "^4.12.0",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -28,7 +28,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/argon2-browser": "^1.18.4",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

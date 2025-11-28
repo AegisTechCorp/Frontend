@@ -15,11 +15,23 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  assetsInclude: ['**/*.wasm'],
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext'
+    }
+  },
+  build: {
+    target: 'esnext'
+  },
   server: {
     host: true,
     port: 5173,
     watch: {
       usePolling: true
+    },
+    fs: {
+      allow: ['..']
     }
   },
   test: {

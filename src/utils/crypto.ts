@@ -1,20 +1,20 @@
-import argon2 from 'argon2-browser';
+import { argon2id } from 'hash-wasm';
 
 export async function deriveMasterKeyArgon2(
   password: string,
   vaultSalt: string,
 ): Promise<string> {
-  const result = await argon2.hash({
-    pass: password,
+  const result = await argon2id({
+    password,
     salt: vaultSalt,
-    type: argon2.ArgonType.Argon2id,
-    hashLen: 32,
-    mem: 65536,
-    time: 3,
     parallelism: 4,
+    iterations: 3,
+    memorySize: 65536,
+    hashLength: 32,
+    outputType: 'binary'
   });
   
-  return btoa(String.fromCharCode(...result.hash));
+  return btoa(String.fromCharCode(...result));
 }
 
 export async function deriveMasterKey(
@@ -58,17 +58,17 @@ export async function deriveAuthKeyArgon2(
   password: string,
   authSalt: string,
 ): Promise<string> {
-  const result = await argon2.hash({
-    pass: password,
+  const result = await argon2id({
+    password,
     salt: authSalt,
-    type: argon2.ArgonType.Argon2id,
-    hashLen: 32,
-    mem: 65536,
-    time: 3,
     parallelism: 4,
+    iterations: 3,
+    memorySize: 65536,
+    hashLength: 32,
+    outputType: 'binary'
   });
   
-  return btoa(String.fromCharCode(...result.hash));
+  return btoa(String.fromCharCode(...result));
 }
 
 export async function deriveAuthKey(
