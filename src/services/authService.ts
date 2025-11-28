@@ -45,13 +45,13 @@ class AuthService {
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include',
+      credentials: 'include', // Pour les cookies HttpOnly
       body: JSON.stringify({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        dateOfBirth: data.birthDate,
+        dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
       }),
     })
 
