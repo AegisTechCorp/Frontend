@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  Shield,
   Lock,
   FileText,
   Upload,
@@ -12,23 +11,16 @@ import {
   Eye,
   Trash2,
   Plus,
-  User,
   Bell,
-  LogOut,
   Activity,
   Heart,
   Stethoscope,
   Pill,
   Menu,
-  X,
   FolderPlus,
   Folder,
   Camera,
-  Settings,
   Loader2,
-  Image,
-  AlertCircle,
-  Clock,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react"
@@ -46,8 +38,7 @@ import {
   type DashboardStats,
   type DocumentType,
 } from "../api/dashboardApi"
-import { logoutUser } from "../api/authApi"
-import AuthService from "../services/authService"
+import { Layout } from "../components/Layout"
 
 // Mapping des icônes
 const iconMap: Record<string, LucideIcon> = {
@@ -63,7 +54,6 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'prescriptions' | 'imaging' | 'allergies' | 'history'>('overview')
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -92,18 +82,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Obtenir les infos utilisateur
-  const currentUser = AuthService.getUser()
-
-  // Sidebar items
-  const sidebarItems = [
-    { id: 'overview', icon: Activity, label: 'Vue d\'ensemble' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'prescriptions', icon: Pill, label: 'Ordonnances' },
-    { id: 'imaging', icon: Image, label: 'Imagerie' },
-    { id: 'allergies', icon: AlertCircle, label: 'Allergies' },
-    { id: 'history', icon: Clock, label: 'Historique' },
-  ]
+  // Map pour les titres des tabs
+  const tabLabels: Record<string, string> = {
+    overview: 'Vue d\'ensemble',
+    documents: 'Documents',
+    prescriptions: 'Ordonnances',
+    imaging: 'Imagerie',
+    allergies: 'Allergies',
+    history: 'Historique',
+  }
 
   useEffect(() => {
     loadDashboardData()
@@ -161,11 +148,6 @@ export default function DashboardPage() {
     const debounceTimer = setTimeout(performSearch, 300)
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, selectedFilter])
-
-  const handleLogout = () => {
-    logoutUser()
-    navigate('/login')
-  }
 
   const handleDeleteDocument = async (documentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return
@@ -351,124 +333,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col fixed h-screen z-50
-        transform transition-transform duration-300 ease-in-out
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
-      `}>
-        {/* Logo */}
-        {/* <div className="p-4 lg:p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-400" strokeWidth={2.5} />
-              <Lock className="w-3 h-3 lg:w-4 lg:h-4 text-blue-400 absolute -bottom-1 -right-1" />
-            </div>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold">Aegis</h1>
-              <p className="text-xs text-slate-400 hidden sm:block">Dossier médical sécurisé</p>
-            </div>
+    <Layout
+      currentPage="dashboard"
+      onTabChange={(tabId) => setActiveTab(tabId as typeof activeTab)}
+      activeTab={activeTab}
+      showHeader={true}
+      headerContent={
+        <>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg lg:text-2xl font-bold text-slate-900 truncate">
+              {tabLabels[activeTab] || 'Vue d\'ensemble'}
+            </h2>
+            <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
+              Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
-          {/* Close button mobile 
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden p-2 hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div> */}
 
-        {/* User info */}
-        <div className="p-4 lg:p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm lg:text-base truncate">{currentUser?.firstName} {currentUser?.lastName}</p>
-              <p className="text-xs lg:text-sm text-slate-400 truncate">{currentUser?.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
-          {sidebarItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id as typeof activeTab)
-                setMobileMenuOpen(false) // Close mobile menu on click
-              }}
-              className={`w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all text-sm lg:text-base ${
-                activeTab === item.id
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <item.icon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="font-medium truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Bottom actions */}
-        <div className="p-2 lg:p-4 border-t border-slate-700 space-y-1">
-          <button 
-            onClick={() => {
-              navigate('/settings')
-              setMobileMenuOpen(false)
-            }}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base"
-          >
-            <Settings className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Paramètres</span>
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm lg:text-base"
-          >
-            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-            <span className="font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 lg:ml-72">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-          <div className="px-4 lg:px-8 py-3 lg:py-4">
-            <div className="flex items-center justify-between mb-2 lg:mb-0">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* Mobile menu button */}
-                <button
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Menu className="w-6 h-6 text-slate-600" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg lg:text-2xl font-bold text-slate-900 truncate">
-                    {sidebarItems.find(item => item.id === activeTab)?.label || 'Vue d\'ensemble'}
-                  </h2>
-                  <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
-                    Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-2 lg:gap-4">
                 {/* Search - Hidden on mobile, shown on tablet+ */}
                 <div className="relative hidden md:block">
                   <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -504,31 +385,33 @@ export default function DashboardPage() {
                 </button>
 
                 {/* Notifications */}
-                <button className="relative p-2 hover:bg-slate-100 rounded-xl transition-all flex-shrink-0">
+                <button 
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 hover:bg-slate-100 rounded-xl transition-all flex-shrink-0"
+                >
                   <Bell className="w-5 h-5 lg:w-6 lg:h-6 text-slate-600" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-              </div>
-            </div>
+          </div>
 
-            {/* Mobile search bar */}
-            <div className="md:hidden mt-2">
-              <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          {/* Mobile search bar */}
+          <div className="md:hidden mt-2">
+            <div className="relative">
+              <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher..."
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
           </div>
-      </header>
-
-        {/* Content */}
-        <div className="p-4 lg:p-8">
+        </>
+      }
+    >
+      {/* Content */}
+      <div className="p-4 lg:p-8">
           {activeTab === 'overview' && (
             <div className="space-y-6 lg:space-y-8">
 
@@ -810,8 +693,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
+      </div>
 
       {/* Create Folder Modal */}
       {showCreateFolder && (
@@ -1037,6 +919,6 @@ export default function DashboardPage() {
           }
         }
       `}</style>
-    </div>
+    </Layout>
   )
 }

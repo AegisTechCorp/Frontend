@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { Shield, Lock, ArrowLeft, Fingerprint, AlertCircle } from "lucide-react"
+import { Layout } from "../components/Layout"
 import { unlockFolderWithPin, unlockFolderWithBiometric } from "../api/dashboardApi"
 
 export default function UnlockFolderPage() {
@@ -84,27 +85,28 @@ export default function UnlockFolderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 opacity-30">
-        <div
-          className="absolute top-20 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
-          style={{ animationDuration: "4s" }}
-        />
-        <div
-          className="absolute bottom-20 left-20 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
-          style={{ animationDuration: "6s", animationDelay: "1s" }}
-        />
-      </div>
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6 relative overflow-hidden">
+          {/* Animated background */}
+          <div className="absolute inset-0 opacity-30">
+            <div
+              className="absolute top-20 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
+              style={{ animationDuration: "4s" }}
+            />
+            <div
+              className="absolute bottom-20 left-20 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
+              style={{ animationDuration: "6s", animationDelay: "1s" }}
+            />
+          </div>
 
-      {/* Back button */}
-      <button
-        onClick={() => navigate("/dashboard")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors z-10"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Retour</span>
-      </button>
+          {/* Back button */}
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="absolute top-6 left-6 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors z-10"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Retour</span>
+          </button>
 
       {/* Unlock card */}
       <div className="relative w-full max-w-md" style={{ animation: "fadeInUp 0.8s ease-out" }}>
@@ -267,8 +269,9 @@ export default function UnlockFolderPage() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-lg">
             <Shield className="w-4 h-4 text-green-600" />
             <span className="text-sm font-semibold text-slate-700">Chiffrement AES-256</span>
-          </div>
         </div>
+      </div>
+      </div>
       </div>
 
       <style>{`
@@ -283,6 +286,6 @@ export default function UnlockFolderPage() {
           }
         }
       `}</style>
-    </div>
+    </Layout>
   )
 }

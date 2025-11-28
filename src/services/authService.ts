@@ -1,4 +1,4 @@
-import { deriveMasterKey, deriveAuthKey, hashAuthKey } from '../utils/crypto'
+import { deriveMasterKey } from '../utils/crypto'
 
 // Types pour l'authentification
 export interface User {
@@ -37,10 +37,8 @@ class AuthService {
   private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
+    // Dériver la masterKey pour le chiffrement local
     const masterKey = await deriveMasterKey(data.password, data.email)
-    const authKey = await deriveAuthKey(data.password, data.email)
-    const authHash = await hashAuthKey(authKey)
 
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
@@ -50,7 +48,7 @@ class AuthService {
       credentials: 'include',
       body: JSON.stringify({
         email: data.email,
-        authHash: authHash,
+        password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         dateOfBirth: data.birthDate,
@@ -70,10 +68,8 @@ class AuthService {
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
+    // Dériver la masterKey pour le chiffrement local
     const masterKey = await deriveMasterKey(credentials.password, credentials.email)
-    const authKey = await deriveAuthKey(credentials.password, credentials.email)
-    const authHash = await hashAuthKey(authKey)
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -83,7 +79,7 @@ class AuthService {
       credentials: 'include',
       body: JSON.stringify({
         email: credentials.email,
-        authHash: authHash,
+        password: credentials.password,
       }),
     })
 
