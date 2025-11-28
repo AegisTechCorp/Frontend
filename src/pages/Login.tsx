@@ -28,25 +28,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
     if (!email || !password) { 
       setError("Veuillez remplir tous les champs")
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
+      // Appel à l'API backend via AuthService
       const response = await AuthService.login({
         email,
         password,
       })
-      
+
       console.log("Connexion réussie:", response.user)
-      
+
+      // Redirection vers le dashboard
       navigate("/dashboard")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue")
+      setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
     } finally {
       setIsLoading(false)
     }

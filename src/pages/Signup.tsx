@@ -91,7 +91,8 @@ export default function SignupPage() {
 
       console.log("Inscription réussie:", response.user)
 
-      navigate("/login", { state: { message: "Inscription réussie ! Veuillez vous connecter." } })
+      // Redirection vers le dashboard
+      navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
     } finally {
