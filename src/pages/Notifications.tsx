@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, Shield, Lock, FileText, Calendar, AlertTriangle, CheckCircle, X, Trash2 } from 'lucide-react'
+import { Bell, Calendar, AlertTriangle, CheckCircle, X, Trash2, FileText } from 'lucide-react'
+import { Layout } from '../components/Layout'
 import { 
   getNotifications, 
   markNotificationAsRead, 
@@ -127,42 +127,22 @@ export default function Notifications() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header with Logo */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
-              <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent tracking-tight">
-              Aegis
-            </span>
-          </Link>
+    <Layout
+      currentPage="notifications"
+      showHeader={true}
+      headerContent={
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Notifications</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            {unreadCount > 0 
+              ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`
+              : 'Toutes les notifications sont lues'
+            }
+          </p>
         </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Bell className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-                <p className="text-gray-600">
-                  {unreadCount > 0 
-                    ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`
-                    : 'Toutes les notifications sont lues'
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      }
+    >
+      <div className="max-w-4xl mx-auto">
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -316,6 +296,6 @@ export default function Notifications() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }
