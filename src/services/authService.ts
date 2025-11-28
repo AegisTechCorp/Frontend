@@ -37,6 +37,8 @@ class AuthService {
   private static USER_KEY = 'aegis_user'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
+    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
+    const masterKey = await deriveMasterKey(data.password, data.email)
 
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
@@ -71,6 +73,8 @@ class AuthService {
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
+    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
