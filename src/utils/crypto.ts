@@ -1,10 +1,31 @@
+import argon2 from 'argon2-browser';
 
-
+export async function deriveMasterKeyArgon2(
+  password: string,
+  vaultSalt: string,
+): Promise<string> {
+  const result = await argon2.hash({
+    pass: password,
+    salt: vaultSalt,
+    type: argon2.ArgonType.Argon2id,
+    hashLen: 32,
+    mem: 65536,
+    time: 3,
+    parallelism: 4,
+  });
+  
+  return btoa(String.fromCharCode(...result.hash));
+}
 
 export async function deriveMasterKey(
   password: string,
   email: string,
+  vaultSalt?: string,
 ): Promise<string> {
+  if (vaultSalt) {
+    return deriveMasterKeyArgon2(password, vaultSalt);
+  }
+  
   const encoder = new TextEncoder();
   const salt = encoder.encode(`${email}_master_v1`);
   const passwordData = encoder.encode(password);
@@ -21,11 +42,11 @@ export async function deriveMasterKey(
     {
       name: 'PBKDF2',
       salt: salt,
-      iterations: 100000, // 100k itérations (ajustable selon les besoins de sécurité)
+      iterations: 100000,
       hash: 'SHA-256',
     },
     keyMaterial,
-    256, // 256 bits = 32 bytes
+    256,
   );
 
   const keyArray = new Uint8Array(derivedBits);
@@ -33,10 +54,32 @@ export async function deriveMasterKey(
 }
 
 
+export async function deriveAuthKeyArgon2(
+  password: string,
+  authSalt: string,
+): Promise<string> {
+  const result = await argon2.hash({
+    pass: password,
+    salt: authSalt,
+    type: argon2.ArgonType.Argon2id,
+    hashLen: 32,
+    mem: 65536,
+    time: 3,
+    parallelism: 4,
+  });
+  
+  return btoa(String.fromCharCode(...result.hash));
+}
+
 export async function deriveAuthKey(
   password: string,
   email: string,
+  authSalt?: string,
 ): Promise<string> {
+  if (authSalt) {
+    return deriveAuthKeyArgon2(password, authSalt);
+  }
+  
   const encoder = new TextEncoder();
   const salt = encoder.encode(`${email}_auth_v1`);
   const passwordData = encoder.encode(password);
@@ -53,11 +96,11 @@ export async function deriveAuthKey(
     {
       name: 'PBKDF2',
       salt: salt,
-      iterations: 100000, // 100k itérations
+      iterations: 100000,
       hash: 'SHA-256',
     },
     keyMaterial,
-    256, // 256 bits = 32 bytes
+    256,
   );
 
   const keyArray = new Uint8Array(derivedBits);

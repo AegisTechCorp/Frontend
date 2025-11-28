@@ -1,4 +1,5 @@
 import { deriveMasterKey } from '../utils/crypto'
+import { KeyManager } from '../utils/keyManager'
 
 export interface User {
   id: string
@@ -34,24 +35,21 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost
 class AuthService {
   private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
-  private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-
-    const masterKey = await deriveMasterKey(data.password, data.email)
 
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Pour les cookies HttpOnly
+      credentials: 'include',
       body: JSON.stringify({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
+        dateOfBirth: data.birthDate,
       }),
     })
 
@@ -62,7 +60,8 @@ class AuthService {
 
     const result = await response.json()
 
-    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+    const masterKey = await deriveMasterKey(data.password, data.email, result.vaultSalt)
+    KeyManager.setMasterKey(masterKey)
 
     if (result.vaultSalt) {
       sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
@@ -72,8 +71,6 @@ class AuthService {
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-
-    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -95,7 +92,9 @@ class AuthService {
     const result = await response.json()
 
     this.setAuth(result.accessToken, result.user)
-    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+    
+    const masterKey = await deriveMasterKey(credentials.password, credentials.email, result.vaultSalt)
+    KeyManager.setMasterKey(masterKey)
 
     if (result.vaultSalt) {
       sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
@@ -105,9 +104,10 @@ class AuthService {
   }
 
   static logout(): void {
+    KeyManager.clearMasterKey()
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
-    sessionStorage.removeItem(this.MASTER_KEY)
+    sessionStorage.removeItem('aegis_vault_salt')
   }
 
   static getToken(): string | null {
@@ -125,7 +125,7 @@ class AuthService {
   }
 
   static getMasterKey(): string | null {
-    return sessionStorage.getItem(this.MASTER_KEY)
+    return KeyManager.getMasterKey()
   }
 
   static isAuthenticated(): boolean {
