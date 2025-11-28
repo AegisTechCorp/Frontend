@@ -76,11 +76,13 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     const data = await response.json()
 
+    const totalDocs = Object.values(data).reduce((sum: number, count) => sum + (count as number), 0) as number
+
     return {
-      totalDocuments: data.totalRecords || 0,
+      totalDocuments: totalDocs,
       totalFolders: 0, // Pas de dossiers dans le backend actuel
-      totalPrescriptions: data.byType?.ordonnance || 0,
-      totalExams: (data.byType?.analyse || 0) + (data.byType?.imagerie || 0),
+      totalPrescriptions: (data.ordonnance || 0),
+      totalExams: (data.analyse || 0) + (data.imagerie || 0),
     }
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
