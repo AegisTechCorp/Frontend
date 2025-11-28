@@ -1,19 +1,35 @@
-import { deriveMasterKey, deriveAuthKey, hashAuthKey } from '../utils/crypto'
+import { deriveMasterKey } from '../utils/crypto'
 
 // Types pour l'authentification
 export interface User {
   id: string
   email: string
-  firstName: string
-  lastName: string
-  birthDate: string
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string
+  vaultSalt: string
+  isActive: boolean
   createdAt: string
   updatedAt: string
 }
 
 export interface AuthResponse {
-  token: string
   user: User
+  accessToken: string
+  vaultSalt: string
+}
+
+export interface RegisterDto {
+  email: string
+  password: string
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string
+}
+
+export interface LoginDto {
+  email: string
+  password: string
 }
 
 export interface LoginCredentials {
@@ -37,11 +53,9 @@ class AuthService {
   private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
-    const masterKey = await deriveMasterKey(data.password, data.email)
-    const authKey = await deriveAuthKey(data.password, data.email)
-    const authHash = await hashAuthKey(authKey)
+    console.log('🔐 [REGISTER] Envoi des données au serveur...');
 
+    // 1. Envoyer le password en clair au serveur (chiffré par HTTPS)
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
@@ -50,7 +64,7 @@ class AuthService {
       credentials: 'include', // Pour les cookies HttpOnly
       body: JSON.stringify({
         email: data.email,
-        authHash: authHash,
+        password: data.password, // ✅ Password envoyé en clair
         firstName: data.firstName,
         lastName: data.lastName,
         dateOfBirth: data.birthDate, // Mapper birthDate -> dateOfBirth
@@ -62,19 +76,24 @@ class AuthService {
       throw new Error(error.message || 'Erreur lors de l\'inscription')
     }
 
-    const result = await response.json()
-    // Stocker la masterKey localement (ne pas l'envoyer au serveur)
+    const result: AuthResponse = await response.json()
+    console.log('✅ [REGISTER] Inscription réussie, vaultSalt reçu');
+
+    // 2. Dériver la masterKey avec le vaultSalt reçu du serveur
+    console.log('🔑 [REGISTER] Dérivation de la masterKey avec Argon2id...');
+    const masterKey = await deriveMasterKey(data.password, result.vaultSalt);
+    console.log('✅ [REGISTER] MasterKey dérivée');
+
+    // 3. Stocker la masterKey en sessionStorage (volatile)
     sessionStorage.setItem(this.MASTER_KEY, masterKey)
     
-    return { token: result.accessToken, user: result.user }
+    return result
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Dériver les clés cryptographiques
-    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
-    const authKey = await deriveAuthKey(credentials.password, credentials.email)
-    const authHash = await hashAuthKey(authKey)
+    console.log('🔐 [LOGIN] Envoi des données au serveur...');
 
+    // 1. Envoyer le password en clair au serveur (chiffré par HTTPS)
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
@@ -83,7 +102,7 @@ class AuthService {
       credentials: 'include',
       body: JSON.stringify({
         email: credentials.email,
-        authHash: authHash,
+        password: credentials.password, // ✅ Password envoyé en clair
       }),
     })
 
@@ -92,12 +111,19 @@ class AuthService {
       throw new Error(error.message || 'Erreur lors de la connexion')
     }
 
-    const result = await response.json()
-    // Stocker le token, l'utilisateur et la masterKey
+    const result: AuthResponse = await response.json()
+    console.log('✅ [LOGIN] Connexion réussie, vaultSalt reçu');
+
+    // 2. Dériver la masterKey avec le vaultSalt reçu du serveur
+    console.log('🔑 [LOGIN] Dérivation de la masterKey avec Argon2id...');
+    const masterKey = await deriveMasterKey(credentials.password, result.vaultSalt);
+    console.log('✅ [LOGIN] MasterKey dérivée');
+
+    // 3. Stocker le token, l'utilisateur et la masterKey
     this.setAuth(result.accessToken, result.user)
     sessionStorage.setItem(this.MASTER_KEY, masterKey)
     
-    return { token: result.accessToken, user: result.user }
+    return result
   }
 
   static logout(): void {

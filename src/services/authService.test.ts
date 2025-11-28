@@ -27,12 +27,17 @@ Object.defineProperty(window, 'localStorage', {
 globalThis.fetch = vi.fn() as any
 
 describe('AuthService', () => {
+  // Générer un vaultSalt base64 valide (32 bytes = 44 caractères en base64)
+  const validVaultSalt = btoa(Array.from({ length: 32 }, (_, i) => String.fromCharCode(i)).join(''));
+  
   const mockUser: User = {
     id: '123',
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    birthDate: '1990-01-01',
+    dateOfBirth: '1990-01-01',
+    vaultSalt: validVaultSalt,
+    isActive: true,
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
   }
@@ -115,6 +120,7 @@ describe('AuthService', () => {
       const mockResponse = {
         user: mockUser,
         accessToken: mockToken,
+        vaultSalt: validVaultSalt,
         refreshToken: 'refresh-token',
       }
 
@@ -131,11 +137,16 @@ describe('AuthService', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: expect.stringContaining('authHash'),
+          body: expect.stringContaining('password'),
         })
       )
 
-      expect(result).toEqual({ token: mockToken, user: mockUser })
+      expect(result).toEqual({
+        accessToken: mockToken,
+        user: mockUser,
+        vaultSalt: validVaultSalt,
+        refreshToken: 'refresh-token'
+      })
       expect(AuthService.getToken()).toBe(mockToken)
       expect(AuthService.getUser()).toEqual(mockUser)
     })
@@ -172,6 +183,7 @@ describe('AuthService', () => {
       const mockResponse = {
         user: mockUser,
         accessToken: mockToken,
+        vaultSalt: validVaultSalt,
       }
 
       ;(globalThis.fetch as any).mockResolvedValueOnce({
@@ -185,11 +197,15 @@ describe('AuthService', () => {
         expect.stringContaining('/auth/register'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('authHash'),
+          body: expect.stringContaining('password'),
         })
       )
 
-      expect(result).toEqual({ token: mockToken, user: mockUser })
+      expect(result).toEqual({
+        accessToken: mockToken,
+        user: mockUser,
+        vaultSalt: validVaultSalt
+      })
       // Vérifie que le token n'est PAS stocké après signup
       expect(AuthService.getToken()).toBeNull()
     })

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { deriveMasterKey, deriveAuthKey, hashAuthKey } from '../utils/crypto';
+import { deriveMasterKey } from '../utils/crypto';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/v1';
 
@@ -8,6 +8,17 @@ interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  vaultSalt: string;
+  isActive: boolean;
+  dateOfBirth?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AuthResponse {
+  user: User;
+  accessToken: string;
+  vaultSalt: string;
 }
 
 export function useZeroKnowledgeAuth() {
@@ -16,12 +27,15 @@ export function useZeroKnowledgeAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  //Inscription avec Zero-Knowledge
+  /**
+   * Inscription avec l'architecture hybride
+   */
   const register = async (
     email: string,
     password: string,
     firstName?: string,
     lastName?: string,
+    dateOfBirth?: string,
   ) => {
     setIsLoading(true);
     setError(null);
@@ -37,16 +51,17 @@ export function useZeroKnowledgeAuth() {
       console.log('✅ Clés dérivées');
       console.log('📤 Envoi au serveur...');
 
-      // 2. Envoyer au serveur
+      // 1. Envoyer le password en clair au serveur (chiffré par HTTPS)
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           email,
-          authHash: ah,
+          password, // ✅ Password envoyé en clair
           firstName,
           lastName,
+          dateOfBirth,
         }),
       });
 
@@ -55,8 +70,13 @@ export function useZeroKnowledgeAuth() {
         throw new Error(errorData.message || 'Erreur lors de l\'inscription');
       }
 
-      const data = await response.json();
-      console.log('✅ Inscription réussie', data);
+      const data: AuthResponse = await response.json();
+      console.log('✅ [REGISTER] Inscription réussie, vaultSalt reçu');
+
+      // 2. Dériver la masterKey avec le vaultSalt reçu du serveur
+      console.log('🔑 [REGISTER] Dérivation de la masterKey avec Argon2id...');
+      const mk = await deriveMasterKey(password, data.vaultSalt);
+      console.log('✅ [REGISTER] MasterKey dérivée');
 
       // 3. Stocker la masterKey et les tokens
       sessionStorage.setItem('masterKey', mk);
@@ -75,31 +95,24 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  //Connexion avec Zero-Knowledge
-   
+  /**
+   * Connexion avec l'architecture hybride
+   */
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('🔐 Dérivation des clés...');
+      console.log('🔐 [LOGIN] Envoi au serveur...');
 
-      // 1. Dériver masterKey et authKey
-      const mk = await deriveMasterKey(password, email);
-      const ak = await deriveAuthKey(password, email);
-      const ah = await hashAuthKey(ak);
-
-      console.log('✅ Clés dérivées');
-      console.log('📤 Envoi au serveur...');
-
-      // 2. Envoyer au serveur
+      // 1. Envoyer le password en clair au serveur (chiffré par HTTPS)
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           email,
-          authHash: ah,
+          password, // ✅ Password envoyé en clair
         }),
       });
 
@@ -108,8 +121,13 @@ export function useZeroKnowledgeAuth() {
         throw new Error(errorData.message || 'Identifiants invalides');
       }
 
-      const data = await response.json();
-      console.log('✅ Connexion réussie', data);
+      const data: AuthResponse = await response.json();
+      console.log('✅ [LOGIN] Connexion réussie, vaultSalt reçu');
+
+      // 2. Dériver la masterKey avec le vaultSalt reçu du serveur
+      console.log('🔑 [LOGIN] Dérivation de la masterKey avec Argon2id...');
+      const mk = await deriveMasterKey(password, data.vaultSalt);
+      console.log('✅ [LOGIN] MasterKey dérivée');
 
       // 3. Stocker la masterKey et les tokens
       sessionStorage.setItem('masterKey', mk);

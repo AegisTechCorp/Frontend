@@ -1,72 +1,72 @@
 /**
- * Utilitaires cryptographiques côté client pour l'architecture Zero-Knowledge
+ * Utilitaires cryptographiques côté client pour l'architecture Hybride
+ *
+ * ARCHITECTURE HYBRIDE:
+ * - Authentification classique : envoi du password en clair via HTTPS
+ * - Vault Zero-Knowledge : dérivation client-side de la masterKey avec Argon2id
  *
  * IMPORTANT:
  * - La masterKey ne doit JAMAIS quitter le client
- * - Seul l'authHash est envoyé au serveur
+ * - Le password est envoyé en clair (chiffré par HTTPS)
+ * - Le vaultSalt est reçu du serveur pour dériver la masterKey
  * - La masterKey sert à chiffrer/déchiffrer les données sensibles
  */
 
+import * as argon2 from 'argon2-browser';
+
 /**
- * Dérive la masterKey depuis le mot de passe de l'utilisateur
+ * Dérive la masterKey depuis le mot de passe de l'utilisateur avec Argon2id
  * Cette clé est utilisée pour chiffrer/déchiffrer les données sensibles
  * ATTENTION: Cette clé ne doit JAMAIS être envoyée au serveur
  *
+ * ⚠️ PARAMÈTRES ARGON2 CRITIQUES - NE PAS MODIFIER !
+ * Ces paramètres doivent correspondre EXACTEMENT à ceux du backend
+ *
  * @param password - Mot de passe de l'utilisateur
- * @param email - Email de l'utilisateur (utilisé comme sel)
+ * @param vaultSalt - Le vaultSalt reçu du serveur (base64)
  * @returns La masterKey encodée en base64
  */
 export async function deriveMasterKey(
   password: string,
-  email: string,
+  vaultSalt: string,
 ): Promise<string> {
-  const encoder = new TextEncoder();
-  const salt = encoder.encode(`${email}_master_v1`);
-  const passwordData = encoder.encode(password);
+  try {
+    // Décoder le salt depuis base64
+    const saltArray = Uint8Array.from(atob(vaultSalt), (c) => c.charCodeAt(0));
 
-  // Importer le mot de passe comme clé
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    passwordData,
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  );
+    // Dériver la clé avec Argon2id
+    // ⚠️ PARAMÈTRES CRITIQUES - NE PAS CHANGER !
+    const result = await argon2.hash({
+      pass: password,
+      salt: saltArray,
+      type: 2, // Argon2id (NE PAS CHANGER)
+      mem: 65536, // 64 MB (NE PAS CHANGER)
+      time: 3, // 3 itérations (NE PAS CHANGER)
+      parallelism: 4, // 4 threads (NE PAS CHANGER)
+      hashLen: 32, // 256 bits = 32 bytes (NE PAS CHANGER)
+    });
 
-  // Dériver la masterKey avec PBKDF2
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000, // 100k itérations (ajustable selon les besoins de sécurité)
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    256, // 256 bits = 32 bytes
-  );
-
-  // Convertir en base64
-  const keyArray = new Uint8Array(derivedBits);
-  return btoa(String.fromCharCode(...keyArray));
+    // Retourner le hash encodé en base64
+    return btoa(String.fromCharCode(...result.hash));
+  } catch (error) {
+    console.error('❌ Erreur lors de la dérivation de la masterKey:', error);
+    throw new Error('Impossible de dériver la masterKey');
+  }
 }
 
 /**
- * Dérive l'authKey depuis le mot de passe de l'utilisateur
- * Cette clé est hashée avec SHA-256 avant d'être envoyée au serveur
- *
- * @param password - Mot de passe de l'utilisateur
- * @param email - Email de l'utilisateur (utilisé comme sel)
- * @returns L'authKey encodée en base64
+ * @deprecated Cette fonction n'est plus utilisée dans l'architecture hybride
+ * Le password est maintenant envoyé en clair au serveur (chiffré par HTTPS)
  */
 export async function deriveAuthKey(
   password: string,
   email: string,
 ): Promise<string> {
+  console.warn('⚠️ deriveAuthKey est dépréciée - utilisez directement le password');
   const encoder = new TextEncoder();
   const salt = encoder.encode(`${email}_auth_v1`);
   const passwordData = encoder.encode(password);
 
-  // Importer le mot de passe comme clé
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     passwordData,
@@ -75,38 +75,29 @@ export async function deriveAuthKey(
     ['deriveBits'],
   );
 
-  // Dériver l'authKey avec PBKDF2
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
       salt: salt,
-      iterations: 100000, // 100k itérations
+      iterations: 100000,
       hash: 'SHA-256',
     },
     keyMaterial,
-    256, // 256 bits = 32 bytes
+    256,
   );
 
-  // Convertir en base64
   const keyArray = new Uint8Array(derivedBits);
   return btoa(String.fromCharCode(...keyArray));
 }
 
 /**
- * Hashe l'authKey avec SHA-256 pour créer l'authHash
- * C'est cet authHash qui est envoyé au serveur (jamais l'authKey brute)
- *
- * @param authKey - L'authKey dérivée du mot de passe
- * @returns L'authHash encodé en base64 (44 caractères)
+ * @deprecated Cette fonction n'est plus utilisée dans l'architecture hybride
  */
 export async function hashAuthKey(authKey: string): Promise<string> {
+  console.warn('⚠️ hashAuthKey est dépréciée - le password est envoyé directement');
   const encoder = new TextEncoder();
   const authKeyData = encoder.encode(authKey);
-
-  // Hasher avec SHA-256
   const hashBuffer = await crypto.subtle.digest('SHA-256', authKeyData);
-
-  // Convertir en base64
   const hashArray = new Uint8Array(hashBuffer);
   return btoa(String.fromCharCode(...hashArray));
 }

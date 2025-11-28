@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import wasm from 'vite-plugin-wasm'
+import topLevelAwait from 'vite-plugin-top-level-await'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    wasm(),
+    topLevelAwait(),
+    react()
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -15,6 +21,35 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
+  },
+  optimizeDeps: {
+    exclude: ['argon2-browser'],
+    esbuildOptions: {
+      target: 'esnext'
+    }
+  },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'argon2': ['argon2-browser']
+        }
+      },
+      onwarn(warning, warn) {
+        // Ignorer les avertissements spécifiques à argon2-browser
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' || 
+            warning.message.includes('argon2.wasm') ||
+            warning.message.includes('Module "path"') ||
+            warning.message.includes('Module "fs"')) {
+          return;
+        }
+        warn(warning);
+      }
+    }
+  },
+  worker: {
+    format: 'es'
   },
   test: {
     globals: true,
