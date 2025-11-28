@@ -10,7 +10,7 @@ describe('App Component', () => {
 
   it('renders landing page with navigation', () => {
     render(<App />)
-    // Vérifie que la navigation est présente
+
     expect(screen.getByRole('navigation')).toBeInTheDocument()
   })
 

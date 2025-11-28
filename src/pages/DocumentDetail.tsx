@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react"
-import { useNavigate, useParams, Link } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import {
-  Shield,
-  Lock,
   ArrowLeft,
+  Menu,
   Calendar,
   User,
   FileText,
@@ -17,8 +16,12 @@ import {
   Loader2,
   Clock,
   CheckCircle,
+  Shield,
+  Lock,
 } from "lucide-react"
 import { getDocumentById, downloadDocument, deleteDocument, type Document } from "../api/dashboardApi"
+import { Layout } from "../components/Layout"
+import { EncryptedFilesManager } from "../components/EncryptedFilesManager"
 
 export default function DocumentDetailPage() {
   const navigate = useNavigate()
@@ -126,7 +129,6 @@ export default function DocumentDetailPage() {
     }
   }
 
-  // État de chargement
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
@@ -138,7 +140,6 @@ export default function DocumentDetailPage() {
     )
   }
 
-  // État d'erreur
   if (error || !document) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6">
@@ -158,168 +159,163 @@ export default function DocumentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo et retour */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-slate-600" />
-              </button>
-              <Link to="/dashboard" className="flex items-center gap-3">
-                <div className="relative">
-                  <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
-                  <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent tracking-tight">
-                  Aegis
-                </span>
-              </Link>
-            </div>
+    <Layout
+      showHeader={true}
+      headerContent={
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-4">
+            {}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <h1 className="text-xl lg:text-2xl font-bold text-slate-900">Détails du document</h1>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
+          {}
+          <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownload}
+                  className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Télécharger</span>
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isDeleting ? 'Suppression...' : 'Supprimer'}</span>
+                </button>
+            </div>
+        </div>
+      }
+    >
+      {}
+      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
+          {}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6">
+            <div className="flex items-start gap-6">
+              {}
+              <div
+                className={`w-20 h-20 bg-gradient-to-br ${getDocumentColor(document.type)} rounded-2xl flex items-center justify-center flex-shrink-0 text-white shadow-lg`}
+              >
+                {getDocumentIcon(document.type)}
+              </div>
+
+              {}
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full font-semibold">
+                        {getDocumentLabel(document.type)}
+                      </span>
+                      <Lock className="w-4 h-4 text-green-500" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">{document.title}</h1>
+                  </div>
+                </div>
+
+                {}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Médecin</p>
+                      <p className="text-sm font-semibold text-slate-900">{document.doctor}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Date</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {new Date(document.date).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Taille</p>
+                      <p className="text-sm font-semibold text-slate-900">{document.size}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-cyan-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Ajouté le</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {new Date(document.createdAt).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {}
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200 mb-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  Document sécurisé
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </h3>
+                <p className="text-slate-700 text-sm leading-relaxed">
+                  Ce document est chiffré de bout en bout avec un algorithme AES-256. Seul vous pouvez le déchiffrer avec votre clé privée. 
+                  Même les administrateurs du système ne peuvent pas accéder au contenu de ce document.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {}
+          <div className="mb-6">
+            <EncryptedFilesManager medicalRecordId={document.id} />
+          </div>
+
+          {}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Aperçu du document</h2>
+            <div className="bg-slate-50 rounded-xl p-12 text-center border-2 border-dashed border-slate-300">
+              <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600 mb-2">Aperçu non disponible</p>
+              <p className="text-sm text-slate-500">Téléchargez le document pour le consulter</p>
               <button
                 onClick={handleDownload}
-                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
+                className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
               >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Télécharger</span>
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden sm:inline">{isDeleting ? 'Suppression...' : 'Supprimer'}</span>
+                <Download className="w-5 h-5" />
+                Télécharger le document
               </button>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
-        {/* Document header card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6">
-          <div className="flex items-start gap-6">
-            {/* Icon */}
-            <div
-              className={`w-20 h-20 bg-gradient-to-br ${getDocumentColor(document.type)} rounded-2xl flex items-center justify-center flex-shrink-0 text-white shadow-lg`}
-            >
-              {getDocumentIcon(document.type)}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full font-semibold">
-                      {getDocumentLabel(document.type)}
-                    </span>
-                    <Lock className="w-4 h-4 text-green-500" />
-                  </div>
-                  <h1 className="text-3xl font-bold text-slate-900 mb-2">{document.title}</h1>
-                </div>
-              </div>
-
-              {/* Metadata grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Médecin</p>
-                    <p className="text-sm font-semibold text-slate-900">{document.doctor}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Date</p>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {new Date(document.date).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Taille</p>
-                    <p className="text-sm font-semibold text-slate-900">{document.size}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-cyan-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Ajouté le</p>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {new Date(document.createdAt).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Security info */}
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                Document sécurisé
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </h3>
-              <p className="text-slate-700 text-sm leading-relaxed">
-                Ce document est chiffré de bout en bout avec un algorithme AES-256. Seul vous pouvez le déchiffrer avec votre clé privée. 
-                Même les administrateurs du système ne peuvent pas accéder au contenu de ce document.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Preview section (placeholder) */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">Aperçu du document</h2>
-          <div className="bg-slate-50 rounded-xl p-12 text-center border-2 border-dashed border-slate-300">
-            <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-2">Aperçu non disponible</p>
-            <p className="text-sm text-slate-500">Téléchargez le document pour le consulter</p>
-            <button
-              onClick={handleDownload}
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
-            >
-              <Download className="w-5 h-5" />
-              Télécharger le document
-            </button>
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   )
 }

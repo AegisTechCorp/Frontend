@@ -16,7 +16,6 @@ export function useZeroKnowledgeAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  //Inscription avec Zero-Knowledge
   const register = async (
     email: string,
     password: string,
@@ -29,7 +28,6 @@ export function useZeroKnowledgeAuth() {
     try {
       console.log(' Dérivation des clés...');
 
-      // 1. Dériver masterKey et authKey
       const mk = await deriveMasterKey(password, email);
       const ak = await deriveAuthKey(password, email);
       const ah = await hashAuthKey(ak);
@@ -37,7 +35,6 @@ export function useZeroKnowledgeAuth() {
       console.log('✅ Clés dérivées');
       console.log('📤 Envoi au serveur...');
 
-      // 2. Envoyer au serveur
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,7 +55,6 @@ export function useZeroKnowledgeAuth() {
       const data = await response.json();
       console.log('✅ Inscription réussie', data);
 
-      // 3. Stocker la masterKey et les tokens
       sessionStorage.setItem('masterKey', mk);
       sessionStorage.setItem('accessToken', data.accessToken);
 
@@ -75,7 +71,6 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  //Connexion avec Zero-Knowledge
    
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -84,7 +79,6 @@ export function useZeroKnowledgeAuth() {
     try {
       console.log('🔐 Dérivation des clés...');
 
-      // 1. Dériver masterKey et authKey
       const mk = await deriveMasterKey(password, email);
       const ak = await deriveAuthKey(password, email);
       const ah = await hashAuthKey(ak);
@@ -92,7 +86,6 @@ export function useZeroKnowledgeAuth() {
       console.log('✅ Clés dérivées');
       console.log('📤 Envoi au serveur...');
 
-      // 2. Envoyer au serveur
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,7 +104,6 @@ export function useZeroKnowledgeAuth() {
       const data = await response.json();
       console.log('✅ Connexion réussie', data);
 
-      // 3. Stocker la masterKey et les tokens
       sessionStorage.setItem('masterKey', mk);
       sessionStorage.setItem('accessToken', data.accessToken);
 
@@ -128,7 +120,6 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-  // Déconnexion
    
   const logout = async () => {
     try {
@@ -139,7 +130,7 @@ export function useZeroKnowledgeAuth() {
     } catch (err) {
       console.error('Erreur lors de la déconnexion:', err);
     } finally {
-      // Nettoyer les données locales
+
       sessionStorage.clear();
       setMasterKey(null);
       setUser(null);
