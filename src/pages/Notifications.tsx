@@ -28,7 +28,7 @@ export default function Notifications() {
     setLoading(true)
     try {
       const data = await getNotifications(filter)
-      // Adapter le format
+
       const formatted = data.map(n => ({
         ...n,
         date: n.createdAt,
@@ -144,7 +144,7 @@ export default function Notifications() {
     >
       <div className="max-w-4xl mx-auto">
 
-        {/* Actions */}
+        {}
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm">
             <button
@@ -190,7 +190,7 @@ export default function Notifications() {
           </div>
         </div>
 
-        {/* Notifications List */}
+        {}
         {loading ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
@@ -226,12 +226,12 @@ export default function Notifications() {
               >
                 <div className="p-5">
                   <div className="flex items-start gap-4">
-                    {/* Icon */}
+                    {}
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getColorClasses(notification.type)}`}>
                       {getIcon(notification.type)}
                     </div>
 
-                    {/* Content */}
+                    {}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3 mb-1">
                         <h3 className={`font-semibold text-gray-900 ${!notification.read ? 'font-bold' : ''}`}>
@@ -246,7 +246,7 @@ export default function Notifications() {
                       </p>
                     </div>
 
-                    {/* Actions */}
+                    {}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {!notification.read && (
                         <button
@@ -267,7 +267,7 @@ export default function Notifications() {
                     </div>
                   </div>
 
-                  {/* Unread indicator */}
+                  {}
                   {!notification.read && (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-blue-100">
                       <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
@@ -280,7 +280,7 @@ export default function Notifications() {
           </div>
         )}
 
-        {/* Info box */}
+        {}
         {notifications.length > 0 && (
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-start gap-3">

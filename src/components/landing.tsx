@@ -43,7 +43,7 @@ export default function AegisLanding() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
-      {/* Navigation */}
+      {}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function AegisLanding() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {}
       <section className="relative pt-32 pb-20 px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 opacity-30">
           <div
@@ -131,7 +131,7 @@ export default function AegisLanding() {
               </div>
             </div>
 
-            {/* Hero Visual */}
+            {}
             <div className="relative" style={{ animation: "fadeInUp 0.8s ease-out 0.2s both" }}>
               <div className="relative bg-white rounded-3xl shadow-2xl p-8 border border-slate-200/50 backdrop-blur-xl">
                 <div
@@ -166,7 +166,7 @@ export default function AegisLanding() {
                 </div>
               </div>
 
-              {/* Floating cards */}
+              {}
               <div
                 className="absolute -left-8 top-20 bg-white rounded-2xl shadow-xl p-4 border border-slate-200/50 backdrop-blur-xl animate-pulse"
                 style={{ animationDuration: "3s" }}
@@ -186,7 +186,7 @@ export default function AegisLanding() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {}
       <section id="features" className="py-20 px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -214,7 +214,7 @@ export default function AegisLanding() {
         </div>
       </section>
 
-      {/* Security Section */}
+      {}
       <section
         id="security"
         className="py-20 px-6 lg:px-8 bg-gradient-to-br from-slate-900 to-blue-900 text-white relative overflow-hidden"
@@ -310,7 +310,7 @@ export default function AegisLanding() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {}
       <section className="py-20 px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-cyan-600 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6">Prêt à reprendre le contrôle ?</h2>
@@ -325,7 +325,7 @@ export default function AegisLanding() {
         </div>
       </section>
 
-      {/* Footer */}
+      {}
       <footer className="bg-slate-900 text-white py-12 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">

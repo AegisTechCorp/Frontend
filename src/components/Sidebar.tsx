@@ -5,10 +5,6 @@ import {
   User,
   LogOut,
   Activity,
-  Pill,
-  Image,
-  AlertCircle,
-  Clock,
   Settings,
   UserCircle,
   X,
@@ -43,17 +39,11 @@ export function Sidebar({
   const location = useLocation()
   const currentUser = AuthService.getUser()
 
-  // Dashboard items (avec callback pour changer les tabs)
   const dashboardItems: SidebarItem[] = [
     { id: 'overview', icon: Activity, label: 'Vue d\'ensemble' },
     { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'prescriptions', icon: Pill, label: 'Ordonnances' },
-    { id: 'imaging', icon: Image, label: 'Imagerie' },
-    { id: 'allergies', icon: AlertCircle, label: 'Allergies' },
-    { id: 'history', icon: Clock, label: 'Historique' },
   ]
 
-  // Pages principales
   const mainPages: SidebarItem[] = [
     { id: 'notifications', icon: Bell, label: 'Notifications', route: '/notifications' },
     { id: 'security', icon: Shield, label: 'Sécurité', route: '/security' },
@@ -70,17 +60,12 @@ export function Sidebar({
 
   const handleItemClick = (item: SidebarItem) => {
     if (!item.route) {
-      // C'est un item de dashboard (tab)
       if (currentPage === 'dashboard' && onTabChange) {
-        // Si on est déjà sur le dashboard, changer juste le tab
         onTabChange(item.id)
       } else {
-        // Sinon naviguer vers le dashboard avec le bon tab
         navigate('/dashboard')
-        // Le tab sera sélectionné par défaut ou il faudrait un state management global
       }
     } else {
-      // Navigation vers une autre page
       navigate(item.route)
     }
     setMobileMenuOpen(false)
@@ -98,7 +83,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile menu overlay */}
       {mobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -106,36 +90,36 @@ export function Sidebar({
         />
       )}
 
-      {/* Sidebar */}
       <aside className={`
         w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col fixed h-screen z-50
         transform transition-transform duration-300 ease-in-out
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
-        {/* User info */}
         <div className="p-4 lg:p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm lg:text-base truncate">{currentUser?.firstName} {currentUser?.lastName}</p>
-              <p className="text-xs lg:text-sm text-slate-400 truncate">{currentUser?.email}</p>
-            </div>
-            {/* Close button mobile */}
+          <div className="flex justify-end lg:hidden mb-3">
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+          
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mb-3">
+              <User className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
+            </div>
+            <p className="font-bold text-base lg:text-lg mb-1">
+              {currentUser?.firstName} {currentUser?.lastName}
+            </p>
+            <p className="text-xs lg:text-sm text-slate-400 break-all px-2">
+              {currentUser?.email}
+            </p>
+          </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
-          {/* Afficher les items du dashboard sur toutes les pages */}
           {dashboardItems.map(item => (
             <button
               key={item.id}
@@ -151,12 +135,10 @@ export function Sidebar({
             </button>
           ))}
           
-          {/* Séparateur */}
           <div className="py-2">
             <div className="border-t border-slate-700"></div>
           </div>
           
-          {/* Pages principales */}
           {mainPages.map(page => (
             <button
               key={page.id}
@@ -173,7 +155,6 @@ export function Sidebar({
           ))}
         </nav>
 
-        {/* Bottom actions */}
         <div className="p-2 lg:p-4 border-t border-slate-700 space-y-1">
           <button 
             onClick={handleLogout}

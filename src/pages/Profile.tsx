@@ -34,7 +34,7 @@ export default function Profile() {
         email: profile.email,
       })
     } catch (error) {
-      // Fallback sur les données locales
+
       const user = AuthService.getUser()
       if (user) {
         const fullName = `${user.firstName} ${user.lastName}`
@@ -94,7 +94,7 @@ export default function Profile() {
       }
     >
       <div className="max-w-4xl mx-auto">
-        {/* Profile Card */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center mb-8">
             <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
@@ -106,9 +106,9 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Informations */}
+          {}
           <div className="space-y-6">
-            {/* Nom */}
+            {}
             <div className="flex items-center border-b border-gray-200 pb-4">
               <User className="w-5 h-5 text-gray-400 mr-4" />
               <div className="flex-1">
@@ -128,7 +128,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Email */}
+            {}
             <div className="flex items-center border-b border-gray-200 pb-4">
               <Mail className="w-5 h-5 text-gray-400 mr-4" />
               <div className="flex-1">
@@ -148,7 +148,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Date de création */}
+            {}
             <div className="flex items-center border-b border-gray-200 pb-4">
               <Calendar className="w-5 h-5 text-gray-400 mr-4" />
               <div className="flex-1">
@@ -159,7 +159,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Sécurité */}
+            {}
             <div className="flex items-center pb-4">
               <Shield className="w-5 h-5 text-gray-400 mr-4" />
               <div className="flex-1">
@@ -178,7 +178,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Statistiques médicales */}
+          {}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-4">Mes documents médicaux</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -193,7 +193,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Boutons d'action */}
+          {}
           <div className="mt-8 flex gap-4">
             {isEditing ? (
               <>

@@ -2,9 +2,7 @@ import AuthService from '../services/authService'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
-/**
- * API pour la gestion du profil utilisateur
- */
+
 
 export interface UserProfile {
   id: string
@@ -27,9 +25,7 @@ export interface ChangePasswordData {
   newPassword: string
 }
 
-/**
- * Récupérer le profil de l'utilisateur connecté
- */
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
@@ -47,9 +43,7 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   }
 }
 
-/**
- * Mettre à jour le profil utilisateur
- */
+
 export const updateUserProfile = async (data: UpdateProfileData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
@@ -73,9 +67,7 @@ export const updateUserProfile = async (data: UpdateProfileData) => {
   }
 }
 
-/**
- * Changer le mot de passe
- */
+
 export const changePassword = async (data: ChangePasswordData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/change-password`, {
@@ -98,9 +90,7 @@ export const changePassword = async (data: ChangePasswordData) => {
   }
 }
 
-/**
- * Activer l'authentification à deux facteurs
- */
+
 export const enable2FA = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/2fa/enable`, {
@@ -123,9 +113,7 @@ export const enable2FA = async () => {
   }
 }
 
-/**
- * Vérifier et confirmer l'activation de la 2FA
- */
+
 export const verify2FA = async (code: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/2fa/verify`, {
@@ -148,9 +136,7 @@ export const verify2FA = async (code: string) => {
   }
 }
 
-/**
- * Désactiver l'authentification à deux facteurs
- */
+
 export const disable2FA = async (password: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/2fa/disable`, {
@@ -173,9 +159,7 @@ export const disable2FA = async (password: string) => {
   }
 }
 
-/**
- * Exporter toutes les données de l'utilisateur (RGPD)
- */
+
 export const exportUserData = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/export-data`, {
@@ -206,9 +190,7 @@ export const exportUserData = async () => {
   }
 }
 
-/**
- * Supprimer le compte utilisateur
- */
+
 export const deleteUserAccount = async (password: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/account`, {
@@ -231,9 +213,7 @@ export const deleteUserAccount = async (password: string) => {
   }
 }
 
-/**
- * Récupérer les sessions actives
- */
+
 export const getActiveSessions = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/sessions`, {
@@ -251,9 +231,7 @@ export const getActiveSessions = async () => {
   }
 }
 
-/**
- * Révoquer toutes les sessions sauf la session actuelle
- */
+
 export const revokeAllSessions = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/sessions/revoke-all`, {
@@ -275,9 +253,7 @@ export const revokeAllSessions = async () => {
   }
 }
 
-/**
- * Mettre à jour les préférences de notification
- */
+
 export const updateNotificationSettings = async (settings: {
   emailNotifications?: boolean
   pushNotifications?: boolean
@@ -304,9 +280,7 @@ export const updateNotificationSettings = async (settings: {
   }
 }
 
-/**
- * Récupérer les préférences de notification
- */
+
 export const getNotificationSettings = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/notification-settings`, {

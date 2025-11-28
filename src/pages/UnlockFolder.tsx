@@ -18,8 +18,7 @@ export default function UnlockFolderPage() {
     if (value.length <= 4 && /^\d*$/.test(value)) {
       setPin(value)
       setError("")
-      
-      // Auto-submit when 4 digits entered
+
       if (value.length === 4) {
         handleUnlock(value)
       }
@@ -39,7 +38,7 @@ export default function UnlockFolderPage() {
       const result = await unlockFolderWithPin(folderId, pinValue)
       
       if (result.success) {
-        // Stocker le token de déverrouillage si nécessaire
+
         if (result.token) {
           sessionStorage.setItem(`folder_unlock_${folderId}`, result.token)
         }
@@ -69,7 +68,7 @@ export default function UnlockFolderPage() {
       const result = await unlockFolderWithBiometric(folderId)
       
       if (result.success) {
-        // Stocker le token de déverrouillage si nécessaire
+
         if (result.token) {
           sessionStorage.setItem(`folder_unlock_${folderId}`, result.token)
         }
@@ -87,7 +86,7 @@ export default function UnlockFolderPage() {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6 relative overflow-hidden">
-          {/* Animated background */}
+          {}
           <div className="absolute inset-0 opacity-30">
             <div
               className="absolute top-20 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
@@ -99,7 +98,7 @@ export default function UnlockFolderPage() {
             />
           </div>
 
-          {/* Back button */}
+          {}
           <button
             onClick={() => navigate("/dashboard")}
             className="absolute top-6 left-6 flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors z-10"
@@ -108,10 +107,10 @@ export default function UnlockFolderPage() {
             <span>Retour</span>
           </button>
 
-      {/* Unlock card */}
+      {}
       <div className="relative w-full max-w-md" style={{ animation: "fadeInUp 0.8s ease-out" }}>
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200/50 backdrop-blur-xl">
-          {/* Header */}
+          {}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4 relative">
               <Lock className="w-10 h-10 text-white" />
@@ -123,7 +122,7 @@ export default function UnlockFolderPage() {
 
           {unlockMethod === "pin" ? (
             <div className="space-y-6">
-              {/* PIN Input */}
+              {}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3 text-center">
                   Entrez votre code PIN
@@ -145,7 +144,7 @@ export default function UnlockFolderPage() {
                   ))}
                 </div>
 
-                {/* Hidden input for mobile keyboards */}
+                {}
                 <input
                   type="tel"
                   inputMode="numeric"
@@ -160,7 +159,7 @@ export default function UnlockFolderPage() {
                 />
               </div>
 
-              {/* Error message */}
+              {}
               {error && (
                 <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -168,14 +167,14 @@ export default function UnlockFolderPage() {
                 </div>
               )}
 
-              {/* Demo hint */}
+              {}
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
                 <p className="text-sm text-blue-700 text-center">
                   <strong>Demo:</strong> Utilisez le code <span className="font-mono font-bold">1234</span>
                 </p>
               </div>
 
-              {/* Unlock button */}
+              {}
               <button
                 onClick={() => handleUnlock()}
                 disabled={pin.length !== 4 || isUnlocking}
@@ -194,7 +193,7 @@ export default function UnlockFolderPage() {
                 )}
               </button>
 
-              {/* Alternative method */}
+              {}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
@@ -215,7 +214,7 @@ export default function UnlockFolderPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Biometric unlock */}
+              {}
               <div className="text-center py-8">
                 <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full mb-6 relative">
                   <Fingerprint className="w-20 h-20 text-blue-600 animate-pulse" />
@@ -243,7 +242,7 @@ export default function UnlockFolderPage() {
                 )}
               </button>
 
-              {/* Alternative method */}
+              {}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
@@ -264,7 +263,7 @@ export default function UnlockFolderPage() {
           )}
         </div>
 
-        {/* Security badge */}
+        {}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-lg">
             <Shield className="w-4 h-4 text-green-600" />

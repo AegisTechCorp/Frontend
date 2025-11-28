@@ -36,7 +36,6 @@ export default function Settings() {
       [key]: newValue,
     })
 
-    // Sauvegarder les paramètres de notification
     if (key === 'notifications' || key === 'emailNotifications') {
       await updateNotificationSettings({
         pushNotifications: key === 'notifications' ? newValue : settings.notifications,
@@ -90,7 +89,7 @@ export default function Settings() {
       }
     >
       <div className="max-w-4xl mx-auto">
-        {/* Notifications */}
+        {}
         <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Bell className="w-6 h-6 text-blue-600 mr-3" />
@@ -138,7 +137,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Apparence */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Moon className="w-6 h-6 text-blue-600 mr-3" />
@@ -165,7 +164,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Langue */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Globe className="w-6 h-6 text-blue-600 mr-3" />
@@ -193,7 +192,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Documents médicaux */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
@@ -235,7 +234,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {/* Actions dangereuses */}
+            {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Gestion des données médicales</h2>
           

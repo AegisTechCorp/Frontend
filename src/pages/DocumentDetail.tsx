@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { getDocumentById, downloadDocument, deleteDocument, type Document } from "../api/dashboardApi"
 import { Layout } from "../components/Layout"
+import { EncryptedFilesManager } from "../components/EncryptedFilesManager"
 
 export default function DocumentDetailPage() {
   const navigate = useNavigate()
@@ -128,7 +129,6 @@ export default function DocumentDetailPage() {
     }
   }
 
-  // État de chargement
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
@@ -140,7 +140,6 @@ export default function DocumentDetailPage() {
     )
   }
 
-  // État d'erreur
   if (error || !document) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6">
@@ -165,7 +164,7 @@ export default function DocumentDetailPage() {
       headerContent={
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-4">
-            {/* Back button */}
+            {}
             <button
               onClick={() => navigate('/dashboard')}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
@@ -175,7 +174,7 @@ export default function DocumentDetailPage() {
             <h1 className="text-xl lg:text-2xl font-bold text-slate-900">Détails du document</h1>
           </div>
 
-          {/* Actions */}
+          {}
           <div className="flex items-center gap-2">
                 <button
                   onClick={handleDownload}
@@ -196,19 +195,19 @@ export default function DocumentDetailPage() {
         </div>
       }
     >
-      {/* Page content */}
+      {}
       <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
-          {/* Document header card */}
+          {}
           <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6">
             <div className="flex items-start gap-6">
-              {/* Icon */}
+              {}
               <div
                 className={`w-20 h-20 bg-gradient-to-br ${getDocumentColor(document.type)} rounded-2xl flex items-center justify-center flex-shrink-0 text-white shadow-lg`}
               >
                 {getDocumentIcon(document.type)}
               </div>
 
-              {/* Info */}
+              {}
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -222,7 +221,7 @@ export default function DocumentDetailPage() {
                   </div>
                 </div>
 
-                {/* Metadata grid */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -276,7 +275,7 @@ export default function DocumentDetailPage() {
             </div>
           </div>
 
-          {/* Security info */}
+          {}
           <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200 mb-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -295,7 +294,12 @@ export default function DocumentDetailPage() {
             </div>
           </div>
 
-          {/* Preview section (placeholder) */}
+          {}
+          <div className="mb-6">
+            <EncryptedFilesManager medicalRecordId={document.id} />
+          </div>
+
+          {}
           <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Aperçu du document</h2>
             <div className="bg-slate-50 rounded-xl p-12 text-center border-2 border-dashed border-slate-300">

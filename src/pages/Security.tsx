@@ -8,7 +8,7 @@ export default function Security() {
 
   const handleToggle2FA = async () => {
     if (!twoFactorEnabled) {
-      // Activer 2FA
+
       const result = await enable2FA()
       if (result.success) {
         const code = prompt('QR Code généré ! Entrez le code de vérification de votre application :')
@@ -25,7 +25,7 @@ export default function Security() {
         alert('❌ ' + result.error)
       }
     } else {
-      // Désactiver 2FA
+
       const password = prompt('Entrez votre mot de passe pour désactiver la 2FA :')
       if (password) {
         const result = await disable2FA(password)
@@ -52,7 +52,7 @@ export default function Security() {
     >
       <div className="max-w-4xl mx-auto">
 
-        {/* Authentification à deux facteurs */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
@@ -105,7 +105,7 @@ export default function Security() {
           )}
         </div>
 
-        {/* Chiffrement des données */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center mb-6">
             <Lock className="w-6 h-6 text-blue-600 mr-3" />
@@ -141,7 +141,7 @@ export default function Security() {
           </div>
         </div>
 
-        {/* Sessions actives */}
+        {}
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="flex items-center mb-6">
             <Shield className="w-6 h-6 text-blue-600 mr-3" />
