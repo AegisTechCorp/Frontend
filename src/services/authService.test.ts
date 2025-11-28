@@ -129,7 +129,10 @@ describe('AuthService', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: expect.stringContaining('email'),
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+          }),
         })
       )
 
@@ -185,7 +188,13 @@ describe('AuthService', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: expect.stringContaining('email'),
+          body: JSON.stringify({
+            email: signupData.email,
+            password: signupData.password,
+            firstName: signupData.firstName,
+            lastName: signupData.lastName,
+            dateOfBirth: signupData.birthDate,
+          }),
         })
       )
 
