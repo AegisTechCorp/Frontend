@@ -1,4 +1,5 @@
-// Types pour l'authentification
+import { deriveMasterKey } from '../utils/crypto'
+
 export interface User {
   id: string
   email: string
@@ -12,6 +13,7 @@ export interface User {
 export interface AuthResponse {
   token: string
   user: User
+  vaultSalt?: string
 }
 
 export interface LoginCredentials {
@@ -32,8 +34,12 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost
 class AuthService {
   private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
+  private static MASTER_KEY = 'aegis_master_key'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
+    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
+    const masterKey = await deriveMasterKey(data.password, data.email)
+
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
@@ -55,18 +61,30 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Ne pas stocker le token lors de l'inscription - l'utilisateur doit se connecter
-    return { token: result.accessToken, user: result.user }
+
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    if (result.vaultSalt) {
+      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
+    }
+    
+    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
+    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Pour les cookies HttpOnly
-      body: JSON.stringify(credentials),
+      credentials: 'include',
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+      }),
     })
 
     if (!response.ok) {
@@ -75,14 +93,21 @@ class AuthService {
     }
 
     const result = await response.json()
-    // Le backend retourne { user, accessToken, refreshToken }
+
     this.setAuth(result.accessToken, result.user)
-    return { token: result.accessToken, user: result.user }
+    sessionStorage.setItem(this.MASTER_KEY, masterKey)
+
+    if (result.vaultSalt) {
+      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
+    }
+    
+    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
 
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
+    sessionStorage.removeItem(this.MASTER_KEY)
   }
 
   static getToken(): string | null {
@@ -97,6 +122,10 @@ class AuthService {
     } catch {
       return null
     }
+  }
+
+  static getMasterKey(): string | null {
+    return sessionStorage.getItem(this.MASTER_KEY)
   }
 
   static isAuthenticated(): boolean {
@@ -125,8 +154,7 @@ class AuthService {
     if (!token) return false
 
     try {
-      // Pour l'instant, on vérifie simplement si le token existe
-      // Le backend n'a pas encore d'endpoint /verify
+
       return true
     } catch {
       return false

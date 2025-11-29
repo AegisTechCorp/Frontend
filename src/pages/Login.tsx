@@ -14,13 +14,13 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState("")
 
   useEffect(() => {
-    // Afficher le message de succès s'il vient de l'inscription
+
     if (location.state?.message) {
       setSuccessMessage(location.state.message)
       if (location.state?.email) {
         setEmail(location.state.email)
       }
-      // Nettoyer le state pour éviter que le message ne s'affiche à nouveau
+
       navigate(location.pathname, { replace: true, state: {} })
     }
   }, [location, navigate])
@@ -28,25 +28,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
     if (!email || !password) { 
       setError("Veuillez remplir tous les champs")
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
+      // Appel à l'API backend via AuthService
       const response = await AuthService.login({
         email,
         password,
       })
-      
+
       console.log("Connexion réussie:", response.user)
-      
+
+      // Redirection vers le dashboard
       navigate("/dashboard")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue")
+      setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
     } finally {
       setIsLoading(false)
     }
@@ -54,7 +56,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated background */}
+      {}
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute top-20 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"
@@ -66,7 +68,7 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Logo top left */}
+      {}
       <Link to="/" className="absolute top-6 left-6 flex items-center gap-3 z-10">
         <div className="relative">
           <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
@@ -77,10 +79,10 @@ export default function LoginPage() {
         </span>
       </Link>
 
-      {/* Login card */}
+      {}
       <div className="relative w-full max-w-md" style={{ animation: "fadeInUp 0.8s ease-out" }}>
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200/50 backdrop-blur-xl">
-          {/* Header */}
+          {}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4">
               <Lock className="w-8 h-8 text-white" />
@@ -89,7 +91,7 @@ export default function LoginPage() {
             <p className="text-slate-600">Connectez-vous à votre dossier médical sécurisé</p>
           </div>
 
-          {/* Success Message */}
+          {}
           {successMessage && (
             <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -97,7 +99,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
+          {}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-2">
@@ -178,7 +180,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Sign up link */}
+          {}
           <p className="mt-6 text-center text-slate-600">
             Pas encore de compte ?{" "}
             <Link to="/signup" className="text-blue-600 hover:text-cyan-600 font-semibold transition-colors">

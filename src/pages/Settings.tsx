@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock } from 'lucide-react'
 import { exportUserData, deleteUserAccount, updateNotificationSettings, getNotificationSettings } from '../api/userApi'
+import { Layout } from '../components/Layout'
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -36,7 +37,6 @@ export default function Settings() {
       [key]: newValue,
     })
 
-    // Sauvegarder les paramètres de notification
     if (key === 'notifications' || key === 'emailNotifications') {
       await updateNotificationSettings({
         pushNotifications: key === 'notifications' ? newValue : settings.notifications,
@@ -77,31 +77,21 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header with Logo */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="relative">
-              <Shield className="w-8 h-8 text-blue-600" strokeWidth={2.5} />
-              <Lock className="w-4 h-4 text-cyan-500 absolute -bottom-1 -right-1" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent tracking-tight">
-              Aegis
-            </span>
-          </Link>
+    <Layout
+      currentPage="settings"
+      showHeader={true}
+      headerContent={
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg lg:text-2xl font-bold text-slate-900">Paramètres</h2>
+          <p className="text-xs lg:text-sm text-slate-500 mt-1 hidden sm:block">
+            Configuration du compte
+          </p>
         </div>
-      </header>
-      
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Paramètres</h1>
-          <p className="text-gray-600">Configuration du compte</p>
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+      }
+    >
+      <div className="max-w-4xl mx-auto">
+        {}
+        <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Bell className="w-6 h-6 text-blue-600 mr-3" />
             <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
@@ -148,8 +138,8 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Apparence */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            {}
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Moon className="w-6 h-6 text-blue-600 mr-3" />
             <h2 className="text-xl font-bold text-gray-900">Apparence</h2>
@@ -175,8 +165,8 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Langue */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            {}
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <Globe className="w-6 h-6 text-blue-600 mr-3" />
             <h2 className="text-xl font-bold text-gray-900">Langue</h2>
@@ -203,8 +193,8 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Documents médicaux */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            {}
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
           <div className="flex items-center mb-6">
             <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
             <h2 className="text-xl font-bold text-gray-900">Documents médicaux</h2>
@@ -245,8 +235,8 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Actions dangereuses */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+            {}
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Gestion des données médicales</h2>
           
           <div className="space-y-4">
@@ -278,6 +268,6 @@ export default function Settings() {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }
