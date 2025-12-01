@@ -60,12 +60,8 @@ class AuthService {
 
     const result = await response.json()
 
-    const masterKey = await deriveMasterKey(data.password, data.email, result.vaultSalt)
-    KeyManager.setMasterKey(masterKey)
-
-    if (result.vaultSalt) {
-      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
-    }
+    // Ne PAS sauvegarder les données lors de l'inscription
+    // L'utilisateur doit se connecter explicitement après l'inscription
     
     return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
@@ -108,6 +104,8 @@ class AuthService {
     localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
     sessionStorage.removeItem('aegis_vault_salt')
+    sessionStorage.removeItem('aegis_master_key')
+    sessionStorage.removeItem('aegis_auth_salt')
   }
 
   static getToken(): string | null {

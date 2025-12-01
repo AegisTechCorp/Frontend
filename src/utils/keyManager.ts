@@ -6,6 +6,7 @@ const KEY_LIFETIME_MS = 15 * 60 * 1000;
 export const KeyManager = {
   setMasterKey(key: string): void {
     masterKeyInMemory = key;
+    sessionStorage.setItem('aegis_master_key', key);
     
     if (keyTimeout) {
       clearTimeout(keyTimeout);
@@ -17,13 +18,18 @@ export const KeyManager = {
   },
 
   getMasterKey(): string | null {
-    return masterKeyInMemory;
+    // Prioriser la mémoire, puis sessionStorage
+    if (masterKeyInMemory) {
+      return masterKeyInMemory;
+    }
+    return sessionStorage.getItem('aegis_master_key');
   },
 
   clearMasterKey(): void {
     if (masterKeyInMemory) {
       masterKeyInMemory = null;
     }
+    sessionStorage.removeItem('aegis_master_key');
     
     if (keyTimeout) {
       clearTimeout(keyTimeout);
