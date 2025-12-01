@@ -69,8 +69,6 @@ class AuthService {
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
-    const masterKey = await deriveMasterKey(credentials.password, credentials.email)
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
