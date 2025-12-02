@@ -81,7 +81,7 @@ export default function SignupPage() {
 
     try {
 
-      const response = await AuthService.signup({
+      await AuthService.signup({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -89,10 +89,15 @@ export default function SignupPage() {
         password: formData.password,
       })
 
-      console.log("Inscription réussie:", response.user)
+      // Déconnexion immédiate après l'inscription
+      AuthService.logout()
 
-      // Redirection vers le dashboard
-      navigate("/dashboard")
+      // Redirection vers la page de connexion
+      navigate("/login", { 
+        state: { 
+          message: "Inscription réussie ! Veuillez vous connecter avec vos identifiants." 
+        } 
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
     } finally {
