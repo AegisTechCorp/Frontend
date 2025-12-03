@@ -36,28 +36,32 @@ class LocalStorageMock {
 
 global.localStorage = new LocalStorageMock() as Storage
 
-global.crypto = {
-  getRandomValues: (arr: Uint8Array) => {
-    for (let i = 0; i < arr.length; i++) {
-      arr[i] = Math.floor(Math.random() * 256)
+Object.defineProperty(global, 'crypto', {
+  value: {
+    getRandomValues: (arr: Uint8Array) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256)
+      }
+      return arr
+    },
+    subtle: {
+      digest: vi.fn(),
+      encrypt: vi.fn(),
+      decrypt: vi.fn(),
+      importKey: vi.fn(),
+      exportKey: vi.fn(),
+      generateKey: vi.fn(),
+      deriveKey: vi.fn(),
+      deriveBits: vi.fn(),
+      sign: vi.fn(),
+      verify: vi.fn(),
+      wrapKey: vi.fn(),
+      unwrapKey: vi.fn(),
     }
-    return arr
   },
-  subtle: {
-    digest: vi.fn(),
-    encrypt: vi.fn(),
-    decrypt: vi.fn(),
-    importKey: vi.fn(),
-    exportKey: vi.fn(),
-    generateKey: vi.fn(),
-    deriveKey: vi.fn(),
-    deriveBits: vi.fn(),
-    sign: vi.fn(),
-    verify: vi.fn(),
-    wrapKey: vi.fn(),
-    unwrapKey: vi.fn(),
-  }
-} as any
+  writable: true,
+  configurable: true,
+})
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
