@@ -9,6 +9,8 @@ import ProfilePage from './pages/Profile'
 import SettingsPage from './pages/Settings'
 import SecurityPage from './pages/Security'
 import NotificationsPage from './pages/Notifications'
+import TermsPage from './pages/Terms'
+import PrivacyPage from './pages/Privacy'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/register" element={<SignupPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route
           path="/dashboard"
           element={
