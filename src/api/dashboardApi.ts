@@ -1,5 +1,6 @@
 import AuthService from '../services/authService'
 import { encryptData, decryptData } from '../utils/crypto'
+import { KeyManager } from '../utils/keyManager'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
@@ -7,7 +8,7 @@ export type DocumentType = 'exam' | 'prescription' | 'imaging' | 'allergy' | 'ot
 
 export type Document = {
   id: string
-  title: string // encryptedTitle déchiffré côté client
+  title: string
   type: DocumentType
   date: string
   doctor: string
@@ -16,9 +17,9 @@ export type Document = {
   filePath: string
   createdAt: string
   updatedAt: string
-  encryptedData?: string // Données chiffrées du backend
-  recordType?: string // Type original du backend
-  metadata?: Record<string, any> // Métadonnées du backend
+  encryptedData?: string
+  recordType?: string
+  metadata?: Record<string, any>
 }
 
 export type SecureFolder = {
@@ -68,6 +69,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const response = await fetch(`${API_BASE_URL}/medical-records/statistics`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -80,7 +82,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     return {
       totalDocuments: totalDocs,
-      totalFolders: 0, // Pas de dossiers dans le backend actuel
+      totalFolders: 0,
       totalPrescriptions: (data.ordonnance || 0),
       totalExams: (data.analyse || 0) + (data.imagerie || 0),
     }
@@ -153,6 +155,7 @@ export const getDocuments = async (): Promise<Document[]> => {
     const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -161,19 +164,22 @@ export const getDocuments = async (): Promise<Document[]> => {
 
     const records = await response.json()
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
 
     const documents = await Promise.all(records.map(async (record: any) => {
       let title = 'Document médical'
 
       if (record.encryptedTitle && masterKey) {
         try {
+          if (typeof record.encryptedTitle !== 'string') {
+            throw new Error('Invalid encrypted title format')
+          }
+          
           const decryptedTitle = await decryptData(record.encryptedTitle, masterKey)
           if (decryptedTitle) {
             title = decryptedTitle
           }
         } catch (error) {
-          console.warn('Impossible de déchiffrer le titre du document:', record.id)
         }
       }
       
@@ -239,7 +245,7 @@ function mapDocumentTypeToRecordType(docType: DocumentType): string {
 export const uploadDocument = async (documentData: UploadDocumentData) => {
   try {
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     if (!masterKey) {
       throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
     }
@@ -297,7 +303,7 @@ export const downloadDocument = async (documentId: string) => {
 
     const record = await response.json()
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     if (!masterKey) {
       throw new Error('Clé de chiffrement non disponible')
     }
@@ -307,7 +313,6 @@ export const downloadDocument = async (documentId: string) => {
       throw new Error('Échec du déchiffrement des données')
     }
     const decryptedData = JSON.parse(decryptedDataStr)
-    
     const decryptedTitleStr = await decryptData(record.encryptedTitle || '', masterKey)
     const decryptedTitle = decryptedTitleStr || 'document'
 
@@ -345,7 +350,7 @@ export const getDocumentById = async (documentId: string): Promise<Document> => 
     const record = await response.json()
 
     let title = 'Document médical'
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     
     if (record.encryptedTitle && masterKey) {
       try {
@@ -354,7 +359,6 @@ export const getDocumentById = async (documentId: string): Promise<Document> => 
           title = decryptedTitle
         }
       } catch (error) {
-        console.warn('Impossible de déchiffrer le titre')
       }
     }
 
@@ -403,7 +407,7 @@ export const updateDocument = async (documentId: string, updates: Partial<Upload
   try {
     const body: any = {}
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     if (!masterKey) {
       throw new Error('Clé de chiffrement non disponible')
     }

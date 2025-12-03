@@ -16,7 +16,6 @@ import {
   Heart,
   Stethoscope,
   Pill,
-  Menu,
   FolderPlus,
   Folder,
   Camera,
@@ -24,6 +23,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react"
+import { sanitizeText } from '../utils/sanitizer'
 import {
   getDashboardStats,
   getSecureFolders,
@@ -848,7 +848,7 @@ export default function DashboardPage() {
                 />
                 {uploadData.file && (
                   <p className="text-sm text-slate-600 mt-2">
-                    Fichier sélectionné: {uploadData.file.name}
+                    Fichier sélectionné: {sanitizeText(uploadData.file.name)}
                   </p>
                 )}
               </div>

@@ -33,13 +33,10 @@ export interface SignupData {
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'
 
 class AuthService {
-  private static TOKEN_KEY = 'aegis_auth_token'
   private static USER_KEY = 'aegis_user'
+  private static TOKEN_KEY = 'aegis_token'
 
   static async signup(data: SignupData): Promise<AuthResponse> {
-    // Dériver la masterKey pour le chiffrement local (Zero-Knowledge)
-    const masterKey = await deriveMasterKey(data.password, data.email)
-
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
@@ -57,13 +54,15 @@ class AuthService {
 
     if (!response.ok) {
       const error = await response.json()
+      if (response.status === 409) {
+        throw new Error('Un compte existe déjà avec cette adresse email. Veuillez vous connecter ou utiliser une autre adresse.')
+      }
       throw new Error(error.message || 'Erreur lors de l\'inscription')
     }
 
     const result = await response.json()
-
-    // Ne PAS sauvegarder les données lors de l'inscription
-    // L'utilisateur doit se connecter explicitement après l'inscription
+    
+    this.setAuth(result.user, result.accessToken)
     
     return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
@@ -89,25 +88,18 @@ class AuthService {
 
     const result = await response.json()
 
-    this.setAuth(result.accessToken, result.user)
+    this.setAuth(result.user, result.accessToken)
     
     const masterKey = await deriveMasterKey(credentials.password, credentials.email, result.vaultSalt)
     KeyManager.setMasterKey(masterKey)
-
-    if (result.vaultSalt) {
-      sessionStorage.setItem('aegis_vault_salt', result.vaultSalt)
-    }
     
     return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
   }
 
   static logout(): void {
     KeyManager.clearMasterKey()
-    localStorage.removeItem(this.TOKEN_KEY)
     localStorage.removeItem(this.USER_KEY)
-    sessionStorage.removeItem('aegis_vault_salt')
-    sessionStorage.removeItem('aegis_master_key')
-    sessionStorage.removeItem('aegis_auth_salt')
+    localStorage.removeItem(this.TOKEN_KEY)
   }
 
   static getToken(): string | null {
@@ -129,12 +121,14 @@ class AuthService {
   }
 
   static isAuthenticated(): boolean {
-    return !!this.getToken()
+    return !!this.getUser()
   }
 
-  private static setAuth(token: string, user: User): void {
-    localStorage.setItem(this.TOKEN_KEY, token)
+  private static setAuth(user: User, token?: string): void {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user))
+    if (token) {
+      localStorage.setItem(this.TOKEN_KEY, token)
+    }
   }
 
   static getApiUrl(): string {
@@ -145,38 +139,36 @@ class AuthService {
     const token = this.getToken()
     return {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token && { 'Authorization': `Bearer ${token}` })
     }
   }
 
   static async verifyToken(): Promise<boolean> {
-    const token = this.getToken()
-    if (!token) return false
-
     try {
-
-      return true
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+      return response.ok
     } catch {
       return false
     }
   }
 
-  static async refreshToken(): Promise<string> {
+  static async refreshToken(): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Important pour envoyer le refresh token dans les cookies
+      credentials: 'include',
     })
 
     if (!response.ok) {
       throw new Error('Erreur lors du rafraîchissement du token')
     }
 
-    const result = await response.json()
-    localStorage.setItem(this.TOKEN_KEY, result.accessToken)
-    return result.accessToken
+    await response.json()
   }
 }
 

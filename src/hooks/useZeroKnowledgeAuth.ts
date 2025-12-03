@@ -55,9 +55,6 @@ export function useZeroKnowledgeAuth() {
       const data = await response.json();
       console.log('✅ Inscription réussie', data);
 
-      sessionStorage.setItem('masterKey', mk);
-      sessionStorage.setItem('accessToken', data.accessToken);
-
       setMasterKey(mk);
       setUser(data.user);
 
@@ -71,7 +68,6 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-   
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
@@ -104,9 +100,6 @@ export function useZeroKnowledgeAuth() {
       const data = await response.json();
       console.log('✅ Connexion réussie', data);
 
-      sessionStorage.setItem('masterKey', mk);
-      sessionStorage.setItem('accessToken', data.accessToken);
-
       setMasterKey(mk);
       setUser(data.user);
 
@@ -120,7 +113,6 @@ export function useZeroKnowledgeAuth() {
     }
   };
 
-   
   const logout = async () => {
     try {
       await fetch(`${API_URL}/auth/logout`, {
@@ -130,8 +122,6 @@ export function useZeroKnowledgeAuth() {
     } catch (err) {
       console.error('Erreur lors de la déconnexion:', err);
     } finally {
-
-      sessionStorage.clear();
       setMasterKey(null);
       setUser(null);
     }
