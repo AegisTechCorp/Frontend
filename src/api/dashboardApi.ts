@@ -244,9 +244,22 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
       throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
     }
 
+    // Lire le contenu réel du fichier en Base64
+    const fileContent = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1] // Enlever le préfixe data:...
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(documentData.file)
+    })
+
+    // Chiffrer les données du fichier avec son contenu réel
     const encryptedData = await encryptData({
-      file: documentData.file.name,
-      content: 'Contenu chiffré du fichier',
+      fileName: documentData.file.name,
+      fileType: documentData.file.type || 'application/octet-stream',
+      fileContent: fileContent, // Contenu réel en Base64
       type: documentData.type,
     }, masterKey)
     
@@ -311,16 +324,40 @@ export const downloadDocument = async (documentId: string) => {
     const decryptedTitleStr = await decryptData(record.encryptedTitle || '', masterKey)
     const decryptedTitle = decryptedTitleStr || 'document'
 
-    const content = JSON.stringify(decryptedData, null, 2)
-    const blob = new Blob([content], { type: 'application/json' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${decryptedTitle}.json`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    // Vérifier si c'est un nouveau format avec fileContent ou ancien format
+    if (decryptedData.fileContent) {
+      // Nouveau format : restaurer le fichier original depuis Base64
+      const byteCharacters = atob(decryptedData.fileContent)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: decryptedData.fileType || 'application/octet-stream' })
+      
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // Utiliser le nom de fichier original ou le titre
+      const fileName = decryptedData.fileName || `${decryptedTitle}`
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } else {
+      // Ancien format (données JSON) - fallback
+      const content = JSON.stringify(decryptedData, null, 2)
+      const blob = new Blob([content], { type: 'application/json' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${decryptedTitle}.json`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    }
 
     return { success: true }
   } catch (error) {
