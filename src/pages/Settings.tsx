@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Moon, Globe, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock } from 'lucide-react'
+import { Bell, Download, Trash2, HardDrive, Shield, Lock, User, Settings as SettingsIcon, LogOut, Menu, X, Activity, FileText, Pill, Image, AlertCircle, Clock } from 'lucide-react'
 import { exportUserData, deleteUserAccount, updateNotificationSettings, getNotificationSettings } from '../api/userApi'
 import { Layout } from '../components/Layout'
 
@@ -8,8 +8,6 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     notifications: true,
     emailNotifications: true,
-    darkMode: false,
-    language: 'fr',
     autoBackup: true,
   })
 
@@ -138,60 +136,7 @@ export default function Settings() {
           </div>
         </div>
 
-            {}
-            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
-          <div className="flex items-center mb-6">
-            <Moon className="w-6 h-6 text-blue-600 mr-3" />
-            <h2 className="text-xl font-bold text-gray-900">Apparence</h2>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-gray-900">Mode sombre</h3>
-              <p className="text-sm text-gray-600">Utiliser le thème sombre</p>
-            </div>
-            <button
-              onClick={() => handleToggle('darkMode')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.darkMode ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.darkMode ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
 
-            {}
-            <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
-          <div className="flex items-center mb-6">
-            <Globe className="w-6 h-6 text-blue-600 mr-3" />
-            <h2 className="text-xl font-bold text-gray-900">Langue</h2>
-          </div>
-          
-          <div className="space-y-2">
-            {[
-              { code: 'fr', name: 'Français' },
-              { code: 'en', name: 'English' },
-              { code: 'es', name: 'Español' },
-            ].map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  settings.language === lang.code
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                {lang.name}
-              </button>
-            ))}
-          </div>
-        </div>
 
             {}
             <div className="bg-white rounded-xl lg:rounded-2xl shadow-lg p-6 lg:p-8 mb-6">
