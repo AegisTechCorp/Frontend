@@ -3,6 +3,7 @@ import { User, Mail, Calendar, Shield } from 'lucide-react'
 import AuthService from '../services/authService'
 import { getUserProfile, updateUserProfile } from '../api/userApi'
 import { Layout } from '../components/Layout'
+import { sanitizeText } from '../utils/sanitizer'
 
 export default function Profile() {
   const [userData, setUserData] = useState({
@@ -37,15 +38,15 @@ export default function Profile() {
 
       const user = AuthService.getUser()
       if (user) {
-        const fullName = `${user.firstName} ${user.lastName}`
+        const fullName = `${sanitizeText(user.firstName)} ${sanitizeText(user.lastName)}`
         setUserData({
           name: fullName,
-          email: user.email,
+          email: sanitizeText(user.email),
           createdAt: user.createdAt,
         })
         setFormData({
           name: fullName,
-          email: user.email,
+          email: sanitizeText(user.email),
         })
       }
     }

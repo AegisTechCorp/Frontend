@@ -2,8 +2,6 @@ import AuthService from '../services/authService'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
-
-
 export type NotificationType = 'info' | 'warning' | 'success' | 'medical' | 'security'
 
 export interface Notification {
@@ -22,7 +20,6 @@ export interface CreateNotificationData {
   title: string
   message: string
 }
-
 
 export const getNotifications = async (filter?: 'all' | 'unread'): Promise<Notification[]> => {
   try {
@@ -65,7 +62,6 @@ export const markNotificationAsRead = async (notificationId: string) => {
   }
 }
 
-
 export const markAllNotificationsAsRead = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
@@ -86,7 +82,6 @@ export const markAllNotificationsAsRead = async () => {
     }
   }
 }
-
 
 export const deleteNotification = async (notificationId: string) => {
   try {
@@ -109,7 +104,6 @@ export const deleteNotification = async (notificationId: string) => {
   }
 }
 
-
 export const deleteAllNotifications = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/notifications`, {
@@ -130,7 +124,6 @@ export const deleteAllNotifications = async () => {
     }
   }
 }
-
 
 export const createNotification = async (data: CreateNotificationData) => {
   try {
@@ -154,7 +147,6 @@ export const createNotification = async (data: CreateNotificationData) => {
     }
   }
 }
-
 
 export const getUnreadNotificationCount = async (): Promise<number> => {
   try {

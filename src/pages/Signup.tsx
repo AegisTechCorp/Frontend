@@ -89,10 +89,8 @@ export default function SignupPage() {
         password: formData.password,
       })
 
-      // Déconnexion immédiate après l'inscription
       AuthService.logout()
 
-      // Redirection vers la page de connexion
       navigate("/login", { 
         state: { 
           message: "Inscription réussie ! Veuillez vous connecter avec vos identifiants." 
@@ -107,7 +105,7 @@ export default function SignupPage() {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    setError("") // Clear error on input change
+    setError("")
   }
 
   const passwordStrength = () => {
@@ -166,6 +164,23 @@ export default function SignupPage() {
               </div>
             </div>
           )}
+
+          {/* Warning Zero-Knowledge CRITIQUE */}
+          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-900 mb-1">⚠️ IMPORTANT - Système Zero-Knowledge</p>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Aegis utilise un <span className="font-semibold">chiffrement à connaissance nulle</span>. 
+                  Cela signifie que <span className="font-semibold">si vous oubliez votre mot de passe, 
+                  vos données seront DÉFINITIVEMENT PERDUES</span>. Ni Aegis, ni personne d'autre ne peut 
+                  les récupérer. Choisissez un mot de passe fort que vous pouvez mémoriser ou utilisez 
+                  un gestionnaire de mots de passe sécurisé.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {}
           <form onSubmit={handleSubmit} className="space-y-5">
