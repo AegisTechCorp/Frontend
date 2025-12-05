@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-console.log('Frontend version: v42')
+console.log('Frontend version: v43')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
