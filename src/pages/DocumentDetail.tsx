@@ -2,11 +2,9 @@ import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeft,
-  Menu,
   Calendar,
   User,
   FileText,
-  Download,
   Trash2,
   Stethoscope,
   Pill,
@@ -19,7 +17,7 @@ import {
   Shield,
   Lock,
 } from "lucide-react"
-import { getDocumentById, downloadDocument, deleteDocument, type Document } from "../api/dashboardApi"
+import { getDocumentById, deleteDocument, type Document } from "../api/dashboardApi"
 import { Layout } from "../components/Layout"
 import { EncryptedFilesManager } from "../components/EncryptedFilesManager"
 
@@ -30,6 +28,7 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [totalSize, setTotalSize] = useState<string>('0 KB')
 
   useEffect(() => {
     if (id) {
@@ -43,6 +42,12 @@ export default function DocumentDetailPage() {
       setError(null)
       const doc = await getDocumentById(documentId)
       setDocument(doc)
+      
+      // Charger les fichiers pour calculer la taille totale
+      const { getFilesByMedicalRecord } = await import('../api/filesApi')
+      const files = await getFilesByMedicalRecord(documentId)
+      const totalBytes = files.reduce((sum, file) => sum + file.originalSize, 0)
+      setTotalSize(formatFileSize(totalBytes))
     } catch (err) {
       console.error('Erreur lors du chargement:', err)
       setError(err instanceof Error ? err.message : 'Document introuvable')
@@ -51,28 +56,26 @@ export default function DocumentDetailPage() {
     }
   }
 
-  const handleDownload = async () => {
-    if (!document) return
-    try {
-      const result = await downloadDocument(document.id)
-      if (!result.success) {
-        alert(result.error || 'Erreur lors du téléchargement')
-      }
-    } catch (err) {
-      console.error('Erreur lors du téléchargement:', err)
-      alert('Erreur lors du téléchargement du document')
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes || bytes === 0) return '0 KB'
+    if (bytes < 1024) return Math.round(bytes) + ' B'
+    if (bytes < 1024 * 1024) {
+      const kb = bytes / 1024
+      return (kb < 10 ? kb.toFixed(2) : kb.toFixed(1)) + ' KB'
     }
+    const mb = bytes / (1024 * 1024)
+    return (mb < 10 ? mb.toFixed(2) : mb.toFixed(1)) + ' MB'
   }
 
   const handleDelete = async () => {
     if (!document) return
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.')) return
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce dossier médical et tous ses fichiers ? Cette action est irréversible.')) return
     
     try {
       setIsDeleting(true)
       const result = await deleteDocument(document.id)
       if (result.success) {
-        navigate('/dashboard', { state: { message: 'Document supprimé avec succès' } })
+        navigate('/dashboard', { state: { message: 'Dossier médical supprimé avec succès' } })
       } else {
         alert(result.error || 'Erreur lors de la suppression')
       }
@@ -171,25 +174,18 @@ export default function DocumentDetailPage() {
             >
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
-            <h1 className="text-xl lg:text-2xl font-bold text-slate-900">Détails du document</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-slate-900">Dossier médical</h1>
           </div>
 
           {}
           <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDownload}
-                  className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Télécharger</span>
-                </button>
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">{isDeleting ? 'Suppression...' : 'Supprimer'}</span>
+                  <span className="hidden sm:inline">{isDeleting ? 'Suppression...' : 'Supprimer le dossier'}</span>
                 </button>
             </div>
         </div>
@@ -212,12 +208,16 @@ export default function DocumentDetailPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-semibold">
+                        📁 Dossier médical
+                      </span>
                       <span className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full font-semibold">
                         {getDocumentLabel(document.type)}
                       </span>
                       <Lock className="w-4 h-4 text-green-500" />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">{document.title}</h1>
+                    <p className="text-slate-600 text-sm">Gérez les fichiers et documents de ce dossier ci-dessous</p>
                   </div>
                 </div>
 
@@ -255,7 +255,7 @@ export default function DocumentDetailPage() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 font-medium">Taille</p>
-                      <p className="text-sm font-semibold text-slate-900">{document.size}</p>
+                      <p className="text-sm font-semibold text-slate-900">{totalSize}</p>
                     </div>
                   </div>
 
@@ -283,12 +283,12 @@ export default function DocumentDetailPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  Document sécurisé
+                  Dossier sécurisé
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </h3>
                 <p className="text-slate-700 text-sm leading-relaxed">
-                  Ce document est chiffré de bout en bout avec un algorithme AES-256. Seul vous pouvez le déchiffrer avec votre clé privée. 
-                  Même les administrateurs du système ne peuvent pas accéder au contenu de ce document.
+                  Ce dossier médical et tous ses fichiers sont chiffrés de bout en bout avec un algorithme AES-256. Seul vous pouvez les déchiffrer avec votre clé privée. 
+                  Même les administrateurs du système ne peuvent pas accéder au contenu de ce dossier.
                 </p>
               </div>
             </div>
@@ -296,24 +296,7 @@ export default function DocumentDetailPage() {
 
           {}
           <div className="mb-6">
-            <EncryptedFilesManager medicalRecordId={document.id} />
-          </div>
-
-          {}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Aperçu du document</h2>
-            <div className="bg-slate-50 rounded-xl p-12 text-center border-2 border-dashed border-slate-300">
-              <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2">Aperçu non disponible</p>
-              <p className="text-sm text-slate-500">Téléchargez le document pour le consulter</p>
-              <button
-                onClick={handleDownload}
-                className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Télécharger le document
-              </button>
-            </div>
+            <EncryptedFilesManager medicalRecordId={document.id} onFilesChange={() => loadDocument(document.id)} />
           </div>
       </div>
     </Layout>
