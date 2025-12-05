@@ -61,8 +61,6 @@ export default function DashboardPage() {
     name: '',
     icon: 'Folder',
     color: 'from-blue-500 to-cyan-500',
-    unlockMethod: 'pin' as 'pin' | 'biometric',
-    pin: '',
   })
   
   const [uploadData, setUploadData] = useState({
@@ -169,8 +167,7 @@ export default function DashboardPage() {
     }
     
     if (newFolderData.unlockMethod === 'pin' && newFolderData.pin.length !== 4) {
-      alert('Le code PIN doit contenir exactement 4 chiffres')
-      return
+      // Suppression de la vérification du code PIN
     }
 
     try {
@@ -181,8 +178,6 @@ export default function DashboardPage() {
           name: '',
           icon: 'Folder',
           color: 'from-blue-500 to-cyan-500',
-          unlockMethod: 'pin',
-          pin: '',
         })
         await loadDashboardData()
       } else {
@@ -456,10 +451,7 @@ export default function DashboardPage() {
                     <FolderIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" strokeWidth={2} />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
-                    <span className="text-xs font-semibold text-slate-500">
-                      {folder.unlockMethod === "pin" ? "PIN" : "Bio"}
-                    </span>
+                    {/* Méthode de déverrouillage supprimée */}
                   </div>
                 </div>
                 <h3 className="text-base lg:text-lg font-bold text-slate-900 mb-1 lg:mb-2 group-hover:text-blue-600 transition-colors truncate">
@@ -728,28 +720,11 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Méthode de déverrouillage</label>
-                <select
-                  value={newFolderData.unlockMethod}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, unlockMethod: e.target.value as 'pin' | 'biometric' })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                >
-                  <option value="pin">Code PIN</option>
-                  <option value="biometric">Biométrie</option>
-                </select>
+                {/* Sélecteur de méthode de déverrouillage supprimé */}
               </div>
 
               {newFolderData.unlockMethod === 'pin' && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Code PIN (4 chiffres)</label>
-                  <input
-                    type="password"
-                    value={newFolderData.pin}
-                    onChange={(e) => setNewFolderData({ ...newFolderData, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                    placeholder="••••"
-                    maxLength={4}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center text-2xl tracking-widest"
-                  />
-                </div>
+                {/* Champ code PIN supprimé */}
               )}
             </div>
 
