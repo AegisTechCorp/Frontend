@@ -37,15 +37,11 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Appel à l'API backend via AuthService
-      const response = await AuthService.login({
+      await AuthService.login({
         email,
         password,
       })
 
-      console.log("Connexion réussie:", response.user)
-
-      // Redirection vers le dashboard
       navigate("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
@@ -149,9 +145,10 @@ export default function LoginPage() {
                 <input type="checkbox" className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500" />
                 <span className="text-slate-600">Se souvenir</span>
               </label>
-              <Link to="/reset-password" className="text-blue-600 hover:text-cyan-600 font-medium transition-colors">
-                Mot de passe oublié ?
-              </Link>
+              <div className="text-slate-500 text-xs flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                <span>Chiffrement zero-knowledge</span>
+              </div>
             </div>
 
             {error && (

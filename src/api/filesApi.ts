@@ -1,5 +1,7 @@
 import AuthService from '../services/authService'
 import { encryptData, decryptData } from '../utils/crypto'
+import { KeyManager } from '../utils/keyManager'
+import { safeBase64Decode } from '../utils/safeBase64'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
@@ -53,7 +55,14 @@ async function decryptFile(
   masterKey: string,
   originalMimeType: string
 ): Promise<Blob> {
-  const encryptedText = await encryptedBlob.text()
+  let encryptedText: string;
+  try {
+    encryptedText = await encryptedBlob.text()
+  } catch (error) {
+    const arrayBuffer = await encryptedBlob.arrayBuffer()
+    const decoder = new TextDecoder('utf-8')
+    encryptedText = decoder.decode(arrayBuffer)
+  }
 
   const decryptedBase64 = await decryptData(encryptedText, masterKey)
   
@@ -61,7 +70,23 @@ async function decryptFile(
     throw new Error('Échec du déchiffrement du fichier')
   }
 
-  const binaryString = atob(decryptedBase64)
+  let cleaned = decryptedBase64.trim().replace(/\s/g, '')
+  
+  cleaned = cleaned.replace(/-/g, '+').replace(/_/g, '/')
+  
+  const padLength = (4 - (cleaned.length % 4)) % 4
+  cleaned += '='.repeat(padLength)
+  
+  if (!cleaned || !/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) {
+    throw new Error('Invalid base64 data after decryption')
+  }
+  
+  let binaryString: string
+  try {
+    binaryString = safeBase64Decode(cleaned)
+  } catch (error) {
+    throw new Error(`Failed to decode base64: ${error instanceof Error ? error.message : 'unknown error'}`)
+  }
   const bytes = new Uint8Array(binaryString.length)
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i)
@@ -77,7 +102,7 @@ export const uploadEncryptedFile = async (
 ): Promise<{ success: boolean; file?: UploadedFile; error?: string }> => {
   try {
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     if (!masterKey) {
       throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
     }
@@ -93,8 +118,6 @@ export const uploadEncryptedFile = async (
     formData.append('mimeType', file.type || 'application/octet-stream')
     formData.append('originalSize', file.size.toString())
 
-    console.log('📤 Upload du fichier chiffré...')
-
     const token = AuthService.getToken()
     const headers: Record<string, string> = {}
     if (token) {
@@ -105,7 +128,7 @@ export const uploadEncryptedFile = async (
       `${API_BASE_URL}/files/medical-records/${medicalRecordId}/upload`,
       {
         method: 'POST',
-        headers, // Ne pas inclure Content-Type pour FormData
+        headers,
         body: formData,
       }
     )
@@ -116,11 +139,9 @@ export const uploadEncryptedFile = async (
     }
 
     const uploadedFile = await response.json()
-    console.log('✅ Fichier uploadé avec succès')
     
     return { success: true, file: uploadedFile }
   } catch (error) {
-    console.error('❌ Erreur upload:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors de l\'upload',
@@ -148,7 +169,6 @@ export const getFilesByMedicalRecord = async (
     const files = await response.json()
     return files
   } catch (error) {
-    console.error('Erreur récupération fichiers:', error)
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
@@ -161,12 +181,11 @@ export const downloadEncryptedFile = async (
 ): Promise<{ success: boolean; error?: string }> => {
   try {
 
-    const masterKey = sessionStorage.getItem('aegis_master_key')
+    const masterKey = KeyManager.getMasterKey()
     if (!masterKey) {
       throw new Error('Clé de chiffrement non disponible')
     }
 
-    console.log('📥 Téléchargement du fichier chiffré...')
     const response = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
@@ -178,7 +197,6 @@ export const downloadEncryptedFile = async (
 
     const encryptedBlob = await response.blob()
     
-    console.log('🔓 Déchiffrement du fichier...')
     const decryptedBlob = await decryptFile(encryptedBlob, masterKey, mimeType)
 
     const decryptedFilename = await decryptData(filename, masterKey)
@@ -193,10 +211,8 @@ export const downloadEncryptedFile = async (
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
 
-    console.log('✅ Fichier téléchargé et déchiffré')
     return { success: true }
   } catch (error) {
-    console.error('❌ Erreur téléchargement:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors du téléchargement',

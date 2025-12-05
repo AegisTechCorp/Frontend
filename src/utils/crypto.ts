@@ -1,56 +1,112 @@
-import { argon2id } from 'hash-wasm';
+import { hash, ArgonType } from './argon2-loader';
+import { safeBase64Decode } from './safeBase64';
+
+export interface EncryptedDataStructure {
+  version: number;
+  kdf: {
+    alg: string;
+    params: {
+      m: number;
+      t: number;
+      p: number;
+    };
+  };
+  encryption: {
+    alg: string;
+  };
+  data_b64: string;
+}
+
+export function createEncryptedStructure(
+  encryptedData: string,
+  kdfParams: { m: number; t: number; p: number } = { m: 65536, t: 3, p: 4 }
+): EncryptedDataStructure {
+  return {
+    version: 1,
+    kdf: {
+      alg: 'argon2id',
+      params: kdfParams
+    },
+    encryption: {
+      alg: 'aes-256-gcm'
+    },
+    data_b64: encryptedData
+  };
+}
+
+export function parseEncryptedStructure(structure: EncryptedDataStructure): string {
+  if (structure.version !== 1) {
+    throw new Error(`Unsupported encryption version: ${structure.version}`);
+  }
+  if (structure.encryption.alg !== 'aes-256-gcm') {
+    throw new Error(`Unsupported encryption algorithm: ${structure.encryption.alg}`);
+  }
+  return structure.data_b64;
+}
+
+export async function deriveSubKey(
+  masterKey: string,
+  info: string,
+  length: number = 32
+): Promise<ArrayBuffer> {
+  const encoder = new TextEncoder();
+  const infoData = encoder.encode(info);
+  const keyData = Uint8Array.from(safeBase64Decode(masterKey), (c) => c.charCodeAt(0));
+
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    'HKDF',
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: new Uint8Array(0),
+      info: infoData
+    },
+    baseKey,
+    length * 8
+  );
+
+  return derivedBits;
+}
 
 export async function deriveMasterKeyArgon2(
   password: string,
   vaultSalt: string,
 ): Promise<string> {
-  const result = await argon2id({
-    password,
+  const result = await hash({
+    pass: password,
     salt: vaultSalt,
-    parallelism: 4,
-    iterations: 3,
-    memorySize: 65536,
-    hashLength: 32,
-    outputType: 'binary'
+    type: ArgonType.Argon2id,
+    hashLen: 32,
+    mem: 65536,
+    time: 3,
+    parallelism: 4
   });
   
-  return btoa(String.fromCharCode(...result));
+  const hashArray = result.hash;
+  let binary = '';
+  const len = hashArray.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(hashArray[i]);
+  }
+  return btoa(binary);
 }
 
 export async function deriveMasterKey(
   password: string,
-  email: string,
+  _email: string,
   vaultSalt?: string,
 ): Promise<string> {
-  if (vaultSalt) {
-    return deriveMasterKeyArgon2(password, vaultSalt);
+  if (!vaultSalt) {
+    throw new Error('vaultSalt is required for secure key derivation');
   }
-  
-  const encoder = new TextEncoder();
-  const salt = encoder.encode(`${email}_master_v1`);
-  const passwordData = encoder.encode(password);
-
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    passwordData,
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    256,
-  );
-
-  const keyArray = new Uint8Array(derivedBits);
-  return btoa(String.fromCharCode(...keyArray));
+  return deriveMasterKeyArgon2(password, vaultSalt);
 }
 
 
@@ -58,53 +114,34 @@ export async function deriveAuthKeyArgon2(
   password: string,
   authSalt: string,
 ): Promise<string> {
-  const result = await argon2id({
-    password,
+  const result = await hash({
+    pass: password,
     salt: authSalt,
-    parallelism: 4,
-    iterations: 3,
-    memorySize: 65536,
-    hashLength: 32,
-    outputType: 'binary'
+    type: ArgonType.Argon2id,
+    hashLen: 32,
+    mem: 65536,
+    time: 3,
+    parallelism: 4
   });
   
-  return btoa(String.fromCharCode(...result));
+  const hashArray = result.hash;
+  let binary = '';
+  const len = hashArray.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(hashArray[i]);
+  }
+  return btoa(binary);
 }
 
 export async function deriveAuthKey(
   password: string,
-  email: string,
+  _email: string,
   authSalt?: string,
 ): Promise<string> {
-  if (authSalt) {
-    return deriveAuthKeyArgon2(password, authSalt);
+  if (!authSalt) {
+    throw new Error('authSalt is required for secure key derivation');
   }
-  
-  const encoder = new TextEncoder();
-  const salt = encoder.encode(`${email}_auth_v1`);
-  const passwordData = encoder.encode(password);
-
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    passwordData,
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    256,
-  );
-
-  const keyArray = new Uint8Array(derivedBits);
-  return btoa(String.fromCharCode(...keyArray));
+  return deriveAuthKeyArgon2(password, authSalt);
 }
 
 
@@ -115,13 +152,19 @@ export async function hashAuthKey(authKey: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', authKeyData);
 
   const hashArray = new Uint8Array(hashBuffer);
-  return btoa(String.fromCharCode(...hashArray));
+  let binary = '';
+  const len = hashArray.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(hashArray[i]);
+  }
+  return btoa(binary);
 }
 
 
 export async function encryptData(
   data: string | object,
   masterKey: string,
+  context?: { userId?: string; recordId?: string; type?: string }
 ): Promise<string> {
 
   const dataString = typeof data === 'string' ? data : JSON.stringify(data);
@@ -129,11 +172,11 @@ export async function encryptData(
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(dataString);
 
-  const keyData = Uint8Array.from(atob(masterKey), (c) => c.charCodeAt(0));
+  const subKey = await deriveSubKey(masterKey, 'file_encryption_v1', 32);
 
   const key = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    subKey,
     'AES-GCM',
     false,
     ['encrypt'],
@@ -141,10 +184,17 @@ export async function encryptData(
 
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
+  let additionalData: Uint8Array | undefined;
+  if (context) {
+    const aadString = `v1:${context.userId || ''}:${context.recordId || ''}:${context.type || ''}`;
+    additionalData = encoder.encode(aadString);
+  }
+
   const encryptedBuffer = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv: iv,
+      ...(additionalData && { additionalData })
     },
     key,
     dataBuffer,
@@ -155,43 +205,66 @@ export async function encryptData(
   combined.set(iv, 0);
   combined.set(encryptedArray, iv.length);
 
-  const CHUNK_SIZE = 8192;
-  let base64 = '';
-  for (let i = 0; i < combined.length; i += CHUNK_SIZE) {
-    const chunk = combined.slice(i, i + CHUNK_SIZE);
-    base64 += String.fromCharCode(...chunk);
+  let binaryString = '';
+  for (let i = 0; i < combined.length; i++) {
+    binaryString += String.fromCharCode(combined[i]);
   }
-  return btoa(base64);
+  return btoa(binaryString);
 }
 
 
 export async function decryptData(
   encryptedData: string,
   masterKey: string,
+  context?: { userId?: string; recordId?: string; type?: string }
 ): Promise<string | null> {
   try {
+    if (!encryptedData || typeof encryptedData !== 'string') {
+      return null;
+    }
+    
+    let decodedData: string;
+    try {
+      decodedData = safeBase64Decode(encryptedData);
+    } catch (firstError) {
+      try {
+        const firstDecode = safeBase64Decode(encryptedData);
+        const secondDecode = safeBase64Decode(firstDecode);
+        decodedData = secondDecode;
+      } catch (secondError) {
+        throw firstError;
+      }
+    }
 
-    const combined = Uint8Array.from(atob(encryptedData), (c) =>
+    const combined = Uint8Array.from(decodedData, (c) =>
       c.charCodeAt(0),
     );
 
     const iv = combined.slice(0, 12);
     const encrypted = combined.slice(12);
 
-    const keyData = Uint8Array.from(atob(masterKey), (c) => c.charCodeAt(0));
+    const subKey = await deriveSubKey(masterKey, 'file_encryption_v1', 32);
 
     const key = await crypto.subtle.importKey(
       'raw',
-      keyData,
+      subKey,
       'AES-GCM',
       false,
       ['decrypt'],
     );
 
+    const encoder = new TextEncoder();
+    let additionalData: Uint8Array | undefined;
+    if (context) {
+      const aadString = `v1:${context.userId || ''}:${context.recordId || ''}:${context.type || ''}`;
+      additionalData = encoder.encode(aadString);
+    }
+
     const decryptedBuffer = await crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
         iv: iv,
+        ...(additionalData && { additionalData })
       },
       key,
       encrypted,
@@ -200,7 +273,6 @@ export async function decryptData(
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
   } catch (error) {
-    console.error('Erreur lors du déchiffrement:', error);
     return null;
   }
 }
@@ -221,4 +293,20 @@ export function isValidAuthHashFormat(authHash: string): boolean {
     authHash.length === 44 &&
     base64Regex.test(authHash)
   );
+}
+
+/**
+ * Vérifie si une chaîne est un base64 valide
+ */
+export function isValidBase64(str: string): boolean {
+  if (!str || typeof str !== 'string') {
+    return false;
+  }
+  
+  try {
+    safeBase64Decode(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
