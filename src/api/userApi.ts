@@ -2,8 +2,6 @@ import AuthService from '../services/authService'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
-
-
 export interface UserProfile {
   id: string
   email: string
@@ -25,7 +23,6 @@ export interface ChangePasswordData {
   newPassword: string
 }
 
-
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
@@ -42,7 +39,6 @@ export const getUserProfile = async (): Promise<UserProfile> => {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
-
 
 export const updateUserProfile = async (data: UpdateProfileData) => {
   try {
@@ -67,7 +63,6 @@ export const updateUserProfile = async (data: UpdateProfileData) => {
   }
 }
 
-
 export const changePassword = async (data: ChangePasswordData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/change-password`, {
@@ -89,7 +84,6 @@ export const changePassword = async (data: ChangePasswordData) => {
     }
   }
 }
-
 
 export const enable2FA = async () => {
   try {
@@ -113,7 +107,6 @@ export const enable2FA = async () => {
   }
 }
 
-
 export const verify2FA = async (code: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/2fa/verify`, {
@@ -136,7 +129,6 @@ export const verify2FA = async (code: string) => {
   }
 }
 
-
 export const disable2FA = async (password: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/2fa/disable`, {
@@ -158,7 +150,6 @@ export const disable2FA = async (password: string) => {
     }
   }
 }
-
 
 export const exportUserData = async () => {
   try {
@@ -190,7 +181,6 @@ export const exportUserData = async () => {
   }
 }
 
-
 export const deleteUserAccount = async (password: string) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/account`, {
@@ -213,7 +203,6 @@ export const deleteUserAccount = async (password: string) => {
   }
 }
 
-
 export const getActiveSessions = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/sessions`, {
@@ -230,7 +219,6 @@ export const getActiveSessions = async () => {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
-
 
 export const revokeAllSessions = async () => {
   try {
@@ -252,7 +240,6 @@ export const revokeAllSessions = async () => {
     }
   }
 }
-
 
 export const updateNotificationSettings = async (settings: {
   emailNotifications?: boolean
@@ -279,7 +266,6 @@ export const updateNotificationSettings = async (settings: {
     }
   }
 }
-
 
 export const getNotificationSettings = async () => {
   try {

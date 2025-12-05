@@ -375,7 +375,7 @@ export default function AegisLanding() {
           }
         }
         
-        * {
+        html, body, #root {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
       `}</style>
