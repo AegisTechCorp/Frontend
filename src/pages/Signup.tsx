@@ -150,7 +150,7 @@ export default function SignupPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4">
               <User className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Créer votre dossier</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Créer un compte</h1>
             <p className="text-slate-600">Rejoignez des milliers d'utilisateurs qui protègent leurs données</p>
           </div>
 
@@ -164,23 +164,6 @@ export default function SignupPage() {
               </div>
             </div>
           )}
-
-          {/* Warning Zero-Knowledge CRITIQUE */}
-          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-amber-900 mb-1">⚠️ IMPORTANT - Système Zero-Knowledge</p>
-                <p className="text-sm text-amber-800 leading-relaxed">
-                  Aegis utilise un <span className="font-semibold">chiffrement à connaissance nulle</span>. 
-                  Cela signifie que <span className="font-semibold">si vous oubliez votre mot de passe, 
-                  vos données seront DÉFINITIVEMENT PERDUES</span>. Ni Aegis, ni personne d'autre ne peut 
-                  les récupérer. Choisissez un mot de passe fort que vous pouvez mémoriser ou utilisez 
-                  un gestionnaire de mots de passe sécurisé.
-                </p>
-              </div>
-            </div>
-          </div>
 
           {}
           <form onSubmit={handleSubmit} className="space-y-5">
