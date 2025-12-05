@@ -3,7 +3,6 @@ import Landing from './components/landing'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
 import DashboardPage from './pages/Dashboard'
-import UnlockFolderPage from './pages/UnlockFolder'
 import DocumentDetailPage from './pages/DocumentDetail'
 import ProfilePage from './pages/Profile'
 import SettingsPage from './pages/Settings'
@@ -32,14 +31,6 @@ function App() {
           element={
             <ProtectedRoute>
               <DocumentDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/unlock-folder"
-          element={
-            <ProtectedRoute>
-              <UnlockFolderPage />
             </ProtectedRoute>
           }
         />

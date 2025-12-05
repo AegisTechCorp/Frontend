@@ -61,8 +61,8 @@ export default function DashboardPage() {
     name: '',
     icon: 'Folder',
     color: 'from-blue-500 to-cyan-500',
-    unlockMethod: 'pin' as 'pin' | 'biometric',
-    pin: '',
+    unlockMethod: 'pin' as 'pin' | 'biometric', // Gardé pour compatibilité
+    pin: '', // Non utilisé actuellement
   })
   
   const [uploadData, setUploadData] = useState({
@@ -167,11 +167,6 @@ export default function DashboardPage() {
       alert('Veuillez entrer un nom de dossier')
       return
     }
-    
-    if (newFolderData.unlockMethod === 'pin' && newFolderData.pin.length !== 4) {
-      alert('Le code PIN doit contenir exactement 4 chiffres')
-      return
-    }
 
     try {
       const result = await createSecureFolder(newFolderData)
@@ -185,6 +180,7 @@ export default function DashboardPage() {
           pin: '',
         })
         await loadDashboardData()
+        alert('Dossier créé avec succès !')
       } else {
         alert(result.error || 'Erreur lors de la création du dossier')
       }
@@ -442,8 +438,7 @@ export default function DashboardPage() {
                   if (selectedFolder === folder.id) {
                     setSelectedFolder(null)
                   } else {
-
-                    navigate(`/unlock-folder?id=${folder.id}`)
+                    setSelectedFolder(folder.id)
                   }
                 }}
                 className={`bg-white rounded-xl lg:rounded-2xl p-4 lg:p-6 border-2 ${
@@ -458,7 +453,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
                     <span className="text-xs font-semibold text-slate-500">
-                      {folder.unlockMethod === "pin" ? "PIN" : "Bio"}
+                      Chiffré
                     </span>
                   </div>
                 </div>
@@ -726,31 +721,13 @@ export default function DashboardPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Méthode de déverrouillage</label>
-                <select
-                  value={newFolderData.unlockMethod}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, unlockMethod: e.target.value as 'pin' | 'biometric' })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                >
-                  <option value="pin">Code PIN</option>
-                  <option value="biometric">Biométrie</option>
-                </select>
-              </div>
+            </div>
 
-              {newFolderData.unlockMethod === 'pin' && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Code PIN (4 chiffres)</label>
-                  <input
-                    type="password"
-                    value={newFolderData.pin}
-                    onChange={(e) => setNewFolderData({ ...newFolderData, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                    placeholder="••••"
-                    maxLength={4}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center text-2xl tracking-widest"
-                  />
-                </div>
-              )}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                <Lock className="w-4 h-4 inline mr-1" />
+                Les dossiers sont automatiquement chiffrés avec votre clé de chiffrement principale.
+              </p>
             </div>
 
             <button

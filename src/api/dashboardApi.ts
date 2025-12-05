@@ -58,15 +58,11 @@ export type UploadDocumentData = {
   file: File
 }
 
-export type UnlockFolderResponse = {
-  success: boolean
-  error?: string
-  token?: string
-}
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/medical-records/statistics`, {
+    // Récupérer tous les medical records
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
       credentials: 'include',
@@ -76,64 +72,151 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       throw new Error('Erreur lors de la récupération des statistiques')
     }
 
-    const data = await response.json()
+    const records = await response.json()
 
-    const totalDocs = Object.values(data).reduce((sum: number, count) => sum + (count as number), 0) as number
+    // Séparer les dossiers des documents
+    const folders = records.filter((r: any) => r.metadata?.isFolder === true)
+    const documents = records.filter((r: any) => r.metadata?.isFolder !== true)
 
-    return {
-      totalDocuments: totalDocs,
-      totalFolders: 0,
-      totalPrescriptions: (data.ordonnance || 0),
-      totalExams: (data.analyse || 0) + (data.imagerie || 0),
+    // Compter par type
+    const stats = {
+      totalDocuments: documents.length,
+      totalFolders: folders.length,
+      totalPrescriptions: documents.filter((d: any) => d.recordType === 'ordonnance').length,
+      totalExams: documents.filter((d: any) => d.recordType === 'analyse' || d.recordType === 'imagerie').length,
     }
+
+    return stats
   } catch (error) {
     throw error instanceof Error ? error : new Error('Erreur réseau')
   }
 }
 
 export const getSecureFolders = async (): Promise<SecureFolder[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'GET',
+      headers: AuthService.getAuthHeaders(),
+      credentials: 'include',
+    })
 
-  return []
-}
+    if (!response.ok) {
+      throw new Error('Erreur lors de la récupération des dossiers')
+    }
 
+    const records = await response.json()
+    const masterKey = KeyManager.getMasterKey()
 
-export const createSecureFolder = async (_folderData: CreateFolderData) => {
+    // Filtrer uniquement les dossiers
+    const folderRecords = records.filter((r: any) => r.metadata?.isFolder === true)
 
-  return {
-    success: false,
-    error: 'La création de dossiers n\'est pas encore implémentée',
+    // Mapper vers le format SecureFolder
+    const folders = await Promise.all(folderRecords.map(async (record: any) => {
+      let name = 'Dossier'
+
+      if (record.encryptedTitle && masterKey) {
+        try {
+          const decryptedName = await decryptData(record.encryptedTitle, masterKey)
+          if (decryptedName) {
+            name = decryptedName
+          }
+        } catch (error) {
+          console.error('Erreur déchiffrement nom dossier:', error)
+        }
+      } else {
+        console.log('Pas de encryptedTitle pour le record:', record.id, 'encryptedTitle:', record.encryptedTitle)
+      }
+
+      // Compter les documents dans ce dossier
+      const documentsInFolder = records.filter((r: any) =>
+        r.metadata?.folderId === record.id && r.metadata?.isFolder !== true
+      ).length
+
+      return {
+        id: record.id,
+        name,
+        icon: record.metadata?.icon || 'Folder',
+        color: record.metadata?.color || 'from-blue-500 to-cyan-500',
+        documentCount: documentsInFolder,
+        isLocked: true,
+        unlockMethod: 'pin' as const,
+        userId: record.userId,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      }
+    }))
+
+    return folders
+  } catch (error) {
+    console.error('Erreur lors de la récupération des dossiers:', error)
+    return []
   }
 }
 
-export const updateSecureFolder = async (_folderId: string, _updates: Partial<CreateFolderData>) => {
+export const createSecureFolder = async (folderData: CreateFolderData) => {
+  try {
+    const masterKey = KeyManager.getMasterKey()
+    if (!masterKey) {
+      return {
+        success: false,
+        error: 'Clé de chiffrement non disponible. Veuillez vous reconnecter.',
+      }
+    }
 
-  return {
-    success: false,
-    error: 'La gestion des dossiers sécurisés n\'est pas disponible',
-  }
-}
+    // Chiffrer le nom du dossier
+    const encryptedName = await encryptData(folderData.name, masterKey)
 
-export const deleteSecureFolder = async (_folderId: string) => {
+    // Créer un objet de données vide pour le dossier
+    const folderContent = {
+      name: folderData.name,
+      icon: folderData.icon,
+      color: folderData.color,
+      documents: [], // Liste vide pour un nouveau dossier
+      createdAt: new Date().toISOString(),
+    }
 
-  return {
-    success: false,
-    error: 'La gestion des dossiers sécurisés n\'est pas disponible',
-  }
-}
+    // Chiffrer le contenu du dossier
+    const encryptedContent = await encryptData(JSON.stringify(folderContent), masterKey)
 
-export const unlockFolderWithPin = async (_folderId: string, _pin: string): Promise<UnlockFolderResponse> => {
+    // Préparer les données à envoyer au backend
+    const payload = {
+      encryptedData: encryptedContent, // Requis : contenu chiffré du dossier
+      encryptedTitle: encryptedName, // Optionnel : titre chiffré pour l'affichage
+      recordType: 'autre', // Type par défaut pour un dossier personnalisé
+      metadata: {
+        icon: folderData.icon,
+        color: folderData.color,
+        isFolder: true, // Marquer comme dossier plutôt que document
+      },
+    }
 
-  return {
-    success: false,
-    error: 'Le déverrouillage de dossiers n\'est pas disponible',
-  }
-}
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'POST',
+      headers: {
+        ...AuthService.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
 
-export const unlockFolderWithBiometric = async (_folderId: string): Promise<UnlockFolderResponse> => {
+    if (!response.ok) {
+      const error = await response.json()
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la création du dossier',
+      }
+    }
 
-  return {
-    success: false,
-    error: 'Le déverrouillage de dossiers n\'est pas disponible',
+    return {
+      success: true,
+      error: undefined,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur réseau',
+    }
   }
 }
 
@@ -164,9 +247,12 @@ export const getDocuments = async (): Promise<Document[]> => {
 
     const records = await response.json()
 
+    // Filtrer uniquement les documents (pas les dossiers)
+    const documentRecords = records.filter((r: any) => r.metadata?.isFolder !== true)
+
     const masterKey = KeyManager.getMasterKey()
 
-    const documents = await Promise.all(records.map(async (record: any) => {
+    const documents = await Promise.all(documentRecords.map(async (record: any) => {
       let title = 'Document médical'
 
       if (record.encryptedTitle && masterKey) {
@@ -190,7 +276,7 @@ export const getDocuments = async (): Promise<Document[]> => {
         date: record.metadata?.appointmentDate || record.createdAt,
         doctor: record.metadata?.doctor || 'Non spécifié',
         size: record.metadata?.size || '0 KB',
-        folderId: undefined,
+        folderId: record.metadata?.folderId || undefined,
         filePath: '',
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
@@ -273,7 +359,11 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
     
     const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'POST',
-      headers: AuthService.getAuthHeaders(),
+      headers: {
+        ...AuthService.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
       body: JSON.stringify({
         encryptedData,
         encryptedTitle,
@@ -282,6 +372,8 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
           doctor: documentData.doctor,
           appointmentDate: new Date().toISOString().split('T')[0],
           size: `${(documentData.file.size / 1024).toFixed(2)} KB`,
+          folderId: documentData.folderId || undefined, // Lier au dossier si spécifié
+          isFolder: false, // Marquer comme document
         },
       }),
     })
