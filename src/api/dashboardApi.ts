@@ -1,6 +1,7 @@
 import AuthService from '../services/authService'
 import { encryptData, decryptData } from '../utils/crypto'
 import { KeyManager } from '../utils/keyManager'
+import { getAllFiles } from './filesApi'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
@@ -50,6 +51,12 @@ export type CreateFolderData = {
   pin?: string
 }
 
+export type CreateMedicalRecordData = {
+  title: string
+  type: DocumentType
+  description?: string
+}
+
 export type UploadDocumentData = {
   title: string
   type: DocumentType
@@ -78,11 +85,15 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     const data = await response.json()
 
-    const totalDocs = Object.values(data).reduce((sum: number, count) => sum + (count as number), 0) as number
+    // Compter les dossiers médicaux (Medical Records)
+    const totalFolders = Object.values(data).reduce((sum: number, count) => sum + (count as number), 0) as number
+
+    // Compter les documents (Files) dans tous les dossiers
+    const totalDocuments = await getAllFiles()
 
     return {
-      totalDocuments: totalDocs,
-      totalFolders: 0,
+      totalDocuments, // Nombre de fichiers uploadés dans les dossiers
+      totalFolders, // Nombre de dossiers médicaux (Medical Records)
       totalPrescriptions: (data.ordonnance || 0),
       totalExams: (data.analyse || 0) + (data.imagerie || 0),
     }
@@ -96,6 +107,49 @@ export const getSecureFolders = async (): Promise<SecureFolder[]> => {
   return []
 }
 
+
+export const createMedicalRecord = async (recordData: CreateMedicalRecordData) => {
+  try {
+    const masterKey = KeyManager.getMasterKey()
+    if (!masterKey) {
+      throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
+    }
+
+    // Chiffrer le titre et la description
+    const encryptedTitle = await encryptData(recordData.title, masterKey)
+    const encryptedData = await encryptData({
+      title: recordData.title,
+      description: recordData.description || '',
+      createdAt: new Date().toISOString(),
+    }, masterKey)
+
+    const response = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'POST',
+      headers: AuthService.getAuthHeaders(),
+      body: JSON.stringify({
+        encryptedData,
+        encryptedTitle,
+        recordType: mapDocumentTypeToRecordType(recordData.type),
+        metadata: {
+          createdAt: new Date().toISOString(),
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Erreur lors de la création du dossier')
+    }
+
+    const data = await response.json()
+    return { success: true, record: data }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la création du dossier',
+    }
+  }
+}
 
 export const createSecureFolder = async (_folderData: CreateFolderData) => {
 

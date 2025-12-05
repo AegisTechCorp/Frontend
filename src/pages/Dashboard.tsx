@@ -7,8 +7,6 @@ import {
   Search,
   Filter,
   Calendar,
-  Download,
-  Eye,
   Trash2,
   Plus,
   Bell,
@@ -18,35 +16,24 @@ import {
   Pill,
   FolderPlus,
   Folder,
-  Camera,
+  FolderOpen,
   Loader2,
   TrendingUp,
-  type LucideIcon,
+  Files,
 } from "lucide-react"
 import { sanitizeText } from '../utils/sanitizer'
 import {
   getDashboardStats,
-  getSecureFolders,
   getDocuments,
   searchDocuments,
   deleteDocument,
-  downloadDocument,
-  createSecureFolder,
+  createMedicalRecord,
   uploadDocument,
   type Document,
-  type SecureFolder,
   type DashboardStats,
   type DocumentType,
 } from "../api/dashboardApi"
 import { Layout } from "../components/Layout"
-
-const iconMap: Record<string, LucideIcon> = {
-  Stethoscope,
-  Pill,
-  Camera,
-  FileText,
-  Folder,
-}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -54,15 +41,13 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
   const [showCreateFolder, setShowCreateFolder] = useState(false)
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  const [selectedFolder] = useState<string | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   
-  const [newFolderData, setNewFolderData] = useState({
-    name: '',
-    icon: 'Folder',
-    color: 'from-blue-500 to-cyan-500',
-    unlockMethod: 'pin' as 'pin' | 'biometric',
-    pin: '',
+  const [newRecordData, setNewRecordData] = useState({
+    title: '',
+    type: 'autre' as DocumentType,
+    description: '',
   })
   
   const [uploadData, setUploadData] = useState({
@@ -73,10 +58,10 @@ export default function DashboardPage() {
     file: null as File | null,
   })
   
-  const [folders, setFolders] = useState<SecureFolder[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [filesCount, setFilesCount] = useState<Record<string, number>>({})
   
   const tabLabels: Record<string, string> = {
     overview: 'Vue d\'ensemble',
@@ -97,13 +82,29 @@ export default function DashboardPage() {
 
       const results = await Promise.allSettled([
         getDashboardStats(),
-        getSecureFolders(),
         getDocuments(),
       ])
 
       if (results[0].status === 'fulfilled') setStats(results[0].value)
-      if (results[1].status === 'fulfilled') setFolders(results[1].value)
-      if (results[2].status === 'fulfilled') setDocuments(results[2].value)
+      if (results[1].status === 'fulfilled') {
+        const docs = results[1].value
+        setDocuments(docs)
+        
+        // Charger le nombre de fichiers pour chaque dossier
+        const counts: Record<string, number> = {}
+        const { getFilesByMedicalRecord } = await import('../api/filesApi')
+        
+        await Promise.all(docs.map(async (doc) => {
+          try {
+            const files = await getFilesByMedicalRecord(doc.id)
+            counts[doc.id] = files.length
+          } catch {
+            counts[doc.id] = 0
+          }
+        }))
+        
+        setFilesCount(counts)
+      }
     } catch (err) {
       console.error('Erreur lors du chargement:', err)
     } finally {
@@ -150,39 +151,20 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDownloadDocument = async (documentId: string) => {
-    try {
-      const result = await downloadDocument(documentId)
-      if (!result.success) {
-        alert(result.error || 'Erreur lors du téléchargement')
-      }
-    } catch (err) {
-      console.error('Erreur lors du téléchargement:', err)
-      alert('Erreur lors du téléchargement du document')
-    }
-  }
-
-  const handleCreateFolder = async () => {
-    if (!newFolderData.name.trim()) {
-      alert('Veuillez entrer un nom de dossier')
-      return
-    }
-    
-    if (newFolderData.unlockMethod === 'pin' && newFolderData.pin.length !== 4) {
-      alert('Le code PIN doit contenir exactement 4 chiffres')
+  const handleCreateRecord = async () => {
+    if (!newRecordData.title.trim()) {
+      alert('Veuillez entrer un titre pour le dossier médical')
       return
     }
 
     try {
-      const result = await createSecureFolder(newFolderData)
+      const result = await createMedicalRecord(newRecordData)
       if (result.success) {
         setShowCreateFolder(false)
-        setNewFolderData({
-          name: '',
-          icon: 'Folder',
-          color: 'from-blue-500 to-cyan-500',
-          unlockMethod: 'pin',
-          pin: '',
+        setNewRecordData({
+          title: '',
+          type: 'other',
+          description: '',
         })
         await loadDashboardData()
       } else {
@@ -195,36 +177,60 @@ export default function DashboardPage() {
   }
 
   const handleUploadDocument = async () => {
-    if (!uploadData.title.trim() || !uploadData.doctor.trim() || !uploadData.file) {
-      alert('Veuillez remplir tous les champs et sélectionner un fichier')
+    if (!uploadData.title.trim()) {
+      alert('Veuillez entrer un titre pour le dossier')
       return
     }
 
     try {
-      const result = await uploadDocument({
-        title: uploadData.title,
-        type: uploadData.type,
-        doctor: uploadData.doctor,
-        folderId: uploadData.folderId || undefined,
-        file: uploadData.file,
-      })
-      
-      if (result.success) {
-        setShowUploadModal(false)
-        setUploadData({
-          title: '',
-          type: 'other',
-          doctor: '',
-          folderId: '',
-          file: null,
+      // Si pas de fichier, créer un dossier vide
+      if (!uploadData.file) {
+        const result = await createMedicalRecord({
+          title: uploadData.title,
+          type: uploadData.type,
+          description: uploadData.doctor ? `Médecin: ${uploadData.doctor}` : '',
         })
-        await loadDashboardData()
+        
+        if (result.success) {
+          setShowUploadModal(false)
+          setUploadData({
+            title: '',
+            type: 'other',
+            doctor: '',
+            folderId: '',
+            file: null,
+          })
+          await loadDashboardData()
+        } else {
+          alert(result.error || 'Erreur lors de la création du dossier')
+        }
       } else {
-        alert(result.error || 'Erreur lors de l\'upload')
+        // Si fichier présent, créer le dossier avec le fichier
+        const result = await uploadDocument({
+          title: uploadData.title,
+          type: uploadData.type,
+          doctor: uploadData.doctor || 'Non spécifié',
+          folderId: uploadData.folderId || undefined,
+          file: uploadData.file,
+        })
+        
+        if (result.success) {
+          setShowUploadModal(false)
+          setUploadData({
+            title: '',
+            type: 'other',
+            doctor: '',
+            folderId: '',
+            file: null,
+          })
+          await loadDashboardData()
+        } else {
+          alert(result.error || 'Erreur lors de la création')
+        }
       }
     } catch (err) {
-      console.error('Erreur lors de l\'upload:', err)
-      alert('Erreur lors de l\'upload du document')
+      console.error('Erreur lors de la création:', err)
+      alert('Erreur lors de la création du dossier')
     }
   }
 
@@ -278,26 +284,11 @@ export default function DashboardPage() {
     }
   }
 
-  const getDocumentLabel = (type: string) => {
-    switch (type) {
-      case "exam":
-        return "Examen"
-      case "prescription":
-        return "Ordonnance"
-      case "imaging":
-        return "Imagerie"
-      case "allergy":
-        return "Allergie"
-      default:
-        return "Document"
-    }
-  }
-
   const displayStats = [
+    { label: "Dossiers médicaux", value: String(stats?.totalFolders || 0), icon: Folder, color: "from-purple-500 to-pink-500" },
     { label: "Documents", value: String(stats?.totalDocuments || 0), icon: FileText, color: "from-blue-500 to-cyan-500" },
-    { label: "Dossiers", value: String(stats?.totalFolders || 0), icon: Folder, color: "from-purple-500 to-pink-500" },
     { label: "Ordonnances", value: String(stats?.totalPrescriptions || 0), icon: Pill, color: "from-green-500 to-emerald-500" },
-    { label: "Examens", value: String(stats?.totalExams || 0), icon: Stethoscope, color: "from-cyan-500 to-blue-500" },
+    { label: "Examens", value: String(stats?.totalExams || 0), icon: Stethoscope, color: "from-orange-500 to-red-500" },
   ]
 
   const filteredDocuments = selectedFolder
@@ -361,10 +352,11 @@ export default function DashboardPage() {
                 <button 
                   onClick={() => setShowUploadModal(true)}
                   className="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm lg:text-base"
+                  title="Créer un nouveau dossier médical"
                 >
-                  <Upload className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">Ajouter un document</span>
-                  <span className="sm:hidden">Ajouter</span>
+                  <FolderPlus className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">Nouveau dossier</span>
+                  <span className="sm:hidden">Nouveau</span>
                 </button>
 
                 {}
@@ -376,7 +368,7 @@ export default function DashboardPage() {
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
           </div>
-
+      
           {}
           <div className="md:hidden mt-2">
             <div className="relative">
@@ -419,55 +411,22 @@ export default function DashboardPage() {
               </div>
 
               {}
-              <div className="mb-6 lg:mb-8">
-                <div className="flex items-center justify-between mb-4 lg:mb-6">
-                  <h2 className="text-xl lg:text-2xl font-bold text-slate-900">Dossiers sécurisés</h2>
-                  <button
-                    onClick={() => setShowCreateFolder(true)}
-                    className="px-3 lg:px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-1 lg:gap-2 text-sm lg:text-base"
-                  >
-                    <FolderPlus className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span className="hidden sm:inline">Nouveau dossier</span>
-                    <span className="sm:hidden">Nouveau</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-            {folders.map((folder, i) => {
-              const FolderIcon = iconMap[folder.icon] || Folder
-              return (
-              <button
-                key={folder.id}
-                onClick={() => {
-                  if (selectedFolder === folder.id) {
-                    setSelectedFolder(null)
-                  } else {
-
-                    navigate(`/unlock-folder?id=${folder.id}`)
-                  }
-                }}
-                className={`bg-white rounded-xl lg:rounded-2xl p-4 lg:p-6 border-2 ${
-                  selectedFolder === folder.id ? "border-blue-500" : "border-slate-200"
-                } hover:shadow-lg transition-all text-left group`}
-                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.1}s both` }}
-              >
-                <div className="flex items-start justify-between mb-3 lg:mb-4">
-                  <div className={`w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br ${folder.color} rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0`}>
-                    <FolderIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" strokeWidth={2} />
+              <div className="mb-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-4 lg:p-6 border border-blue-200">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FolderOpen className="w-5 h-5 text-white" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
-                    <span className="text-xs font-semibold text-slate-500">
-                      {folder.unlockMethod === "pin" ? "PIN" : "Bio"}
-                    </span>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-slate-900 mb-1">Comment ça marche ?</h3>
+                    <p className="text-sm text-slate-700 mb-2">
+                      Vos <strong>dossiers médicaux</strong> sont des conteneurs chiffrés qui regroupent vos documents.
+                    </p>
+                    <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                      <li>Cliquez sur <FolderPlus className="w-4 h-4 inline text-blue-600" /> pour créer un nouveau dossier</li>
+                      <li>Ouvrez un dossier pour y ajouter et gérer vos fichiers (PDF, images, etc.)</li>
+                      <li>Tous vos documents sont chiffrés de bout en bout 🔒</li>
+                    </ul>
                   </div>
-                </div>
-                <h3 className="text-base lg:text-lg font-bold text-slate-900 mb-1 lg:mb-2 group-hover:text-blue-600 transition-colors truncate">
-                  {folder.name}
-                </h3>
-                <p className="text-xs lg:text-sm text-slate-600">{folder.documentCount} documents</p>
-              </button>
-            )})}
                 </div>
               </div>
 
@@ -482,7 +441,7 @@ export default function DashboardPage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Rechercher un document..."
+                        placeholder="Rechercher un dossier..."
                         className="w-full pl-10 lg:pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm lg:text-base"
                       />
                     </div>
@@ -519,80 +478,40 @@ export default function DashboardPage() {
               </div>
 
               {}
-              <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="p-4 lg:p-6 border-b border-slate-200">
-                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">
-                    {selectedFolder ? `Documents du dossier` : "Tous les documents"}
-                  </h2>
-                  {selectedFolder && (
-                    <button
-                      onClick={() => setSelectedFolder(null)}
-                      className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium mt-1"
-                    >
-                      ← Retour à tous les documents
-                    </button>
-                  )}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">Dossiers sécurisés</h2>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all text-sm"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Nouveau dossier
+                  </button>
                 </div>
 
-                <div className="divide-y divide-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredDocuments.map((doc, i) => (
                     <div
                       key={doc.id}
-                      className="p-4 lg:p-6 hover:bg-slate-50 transition-colors group"
-                      style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.05}s both` }}
+                      onClick={() => navigate(`/document/${doc.id}`)}
+                      className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all cursor-pointer group"
+                      style={{ animation: `fadeIn 0.5s ease-out ${i * 0.05}s both` }}
                     >
-                      <div className="flex items-start gap-3 lg:gap-4">
-                        {}
-                        <div
-                          className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${getDocumentColor(doc.type)} rounded-xl flex items-center justify-center flex-shrink-0 text-white`}
-                        >
-                          {getDocumentIcon(doc.type)}
-                        </div>
-
-                        {}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-1">
-                            <h3 className="font-semibold text-sm lg:text-base text-slate-900 truncate">{doc.title}</h3>
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full font-medium">
-                              {getDocumentLabel(doc.type)}
-                            </span>
-                            <Lock className="w-3 h-3 lg:w-4 lg:h-4 text-green-500 flex-shrink-0" />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-xs lg:text-sm text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 lg:w-4 lg:h-4" />
-                              {new Date(doc.date).toLocaleDateString("fr-FR")}
-                            </span>
-                            <span className="truncate">{doc.doctor}</span>
-                            <span>{doc.size}</span>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Folder className="w-6 h-6 text-white" />
                           </div>
                         </div>
-
-                        {}
-                        <div className="flex items-center gap-1 lg:gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button 
-                            onClick={() => navigate(`/document/${doc.id}`)}
-                            className="p-1.5 lg:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Voir le document"
-                          >
-                            <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDownloadDocument(doc.id)}
-                            className="p-1.5 lg:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Télécharger"
-                          >
-                            <Download className="w-4 h-4 lg:w-5 lg:h-5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteDocument(doc.id)}
-                            className="p-1.5 lg:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
-                          </button>
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <Lock className="w-4 h-4" />
+                          <span>Chiffré</span>
                         </div>
                       </div>
+
+                      <h3 className="font-bold text-slate-900 mb-2 truncate">{doc.title}</h3>
+                      <p className="text-sm text-slate-500">{filesCount[doc.id] || 0} documents</p>
                     </div>
                   ))}
                 </div>
@@ -620,24 +539,28 @@ export default function DashboardPage() {
               {}
               <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="p-4 lg:p-6 border-b border-slate-200">
-                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">Tous les documents</h2>
+                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">Mes dossiers médicaux</h2>
                 </div>
                 <div className="divide-y divide-slate-200">
                   {filteredDocuments.map((doc, i) => (
                     <div
                       key={doc.id}
-                      className="p-4 lg:p-6 hover:bg-slate-50 transition-colors group"
+                      onClick={() => navigate(`/document/${doc.id}`)}
+                      className="p-4 lg:p-6 hover:bg-blue-50 transition-all group cursor-pointer border-l-4 border-transparent hover:border-blue-500 rounded-r-lg"
                       style={{ animation: `fadeIn 0.5s ease-out ${i * 0.05}s both` }}
                     >
                       <div className="flex items-start gap-3 lg:gap-4">
-                        <div className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${getDocumentColor(doc.type)} rounded-xl flex items-center justify-center flex-shrink-0 text-white`}>
-                          {getDocumentIcon(doc.type)}
+                        <div className={`w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br ${getDocumentColor(doc.type)} rounded-xl flex items-center justify-center flex-shrink-0 text-white group-hover:scale-110 transition-transform relative`}>
+                          <FolderOpen className="w-6 h-6 lg:w-7 lg:h-7" />
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md">
+                            {getDocumentIcon(doc.type)}
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-1">
-                            <h3 className="font-semibold text-sm lg:text-base text-slate-900 truncate">{doc.title}</h3>
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full font-medium">
-                              {getDocumentLabel(doc.type)}
+                            <h3 className="font-bold text-sm lg:text-base text-slate-900 truncate">{doc.title}</h3>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold whitespace-nowrap">
+                              Dossier médical
                             </span>
                             <Lock className="w-3 h-3 lg:w-4 lg:h-4 text-green-500 flex-shrink-0" />
                           </div>
@@ -646,18 +569,34 @@ export default function DashboardPage() {
                               <Calendar className="w-3 h-3 lg:w-4 lg:h-4" />
                               {new Date(doc.date).toLocaleDateString("fr-FR")}
                             </span>
-                            <span className="truncate">{doc.doctor}</span>
-                            <span>{doc.size}</span>
+                            <span className="flex items-center gap-1 font-medium text-blue-600">
+                              <Files className="w-3 h-3 lg:w-4 lg:h-4" />
+                              Contient des fichiers
+                            </span>
                           </div>
+                          <p className="text-xs text-slate-400 mt-1 hidden lg:block group-hover:text-blue-600 transition-colors">
+                            → Cliquez pour ouvrir ce dossier et gérer ses documents
+                          </p>
                         </div>
                         <div className="flex items-center gap-1 lg:gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button onClick={() => navigate(`/document/${doc.id}`)} className="p-1.5 lg:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/document/${doc.id}`)
+                            }}
+                            className="p-1.5 lg:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Ouvrir le dossier"
+                          >
+                            <FolderOpen className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
-                          <button onClick={() => handleDownloadDocument(doc.id)} className="p-1.5 lg:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <Download className="w-4 h-4 lg:w-5 lg:h-5" />
-                          </button>
-                          <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 lg:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteDocument(doc.id)
+                            }}
+                            className="p-1.5 lg:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Supprimer le dossier"
+                          >
                             <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
                         </div>
@@ -682,98 +621,80 @@ export default function DashboardPage() {
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
           <div className="bg-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Créer un dossier sécurisé</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
+                <FolderPlus className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Créer un dossier médical</h2>
+                <p className="text-sm text-slate-600">Organisez vos documents médicaux</p>
+              </div>
+            </div>
             
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nom du dossier</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Titre du dossier *</label>
                 <input
                   type="text"
-                  value={newFolderData.name}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, name: e.target.value })}
-                  placeholder="Ex: Analyses médicales"
+                  value={newRecordData.title}
+                  onChange={(e) => setNewRecordData({ ...newRecordData, title: e.target.value })}
+                  placeholder="Ex: Analyses sanguines 2024"
                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Icône</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Type de dossier *</label>
                 <select
-                  value={newFolderData.icon}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, icon: e.target.value })}
+                  value={newRecordData.type}
+                  onChange={(e) => setNewRecordData({ ...newRecordData, type: e.target.value as DocumentType })}
                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
                 >
-                  <option value="Folder">Dossier</option>
-                  <option value="Stethoscope">Stéthoscope</option>
-                  <option value="Pill">Médicament</option>
-                  <option value="Camera">Imagerie</option>
-                  <option value="FileText">Document</option>
+                  <option value="exam">Examen médical</option>
+                  <option value="prescription">Ordonnance</option>
+                  <option value="imaging">Imagerie</option>
+                  <option value="allergy">Allergie</option>
+                  <option value="other">Autre</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Couleur</label>
-                <select
-                  value={newFolderData.color}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, color: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                >
-                  <option value="from-blue-500 to-cyan-500">Bleu</option>
-                  <option value="from-green-500 to-emerald-500">Vert</option>
-                  <option value="from-purple-500 to-pink-500">Violet</option>
-                  <option value="from-red-500 to-orange-500">Rouge</option>
-                  <option value="from-yellow-500 to-orange-500">Jaune</option>
-                </select>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Description (optionnel)</label>
+                <textarea
+                  value={newRecordData.description}
+                  onChange={(e) => setNewRecordData({ ...newRecordData, description: e.target.value })}
+                  placeholder="Ex: Suivi annuel, examens de routine..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
+                />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Méthode de déverrouillage</label>
-                <select
-                  value={newFolderData.unlockMethod}
-                  onChange={(e) => setNewFolderData({ ...newFolderData, unlockMethod: e.target.value as 'pin' | 'biometric' })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                >
-                  <option value="pin">Code PIN</option>
-                  <option value="biometric">Biométrie</option>
-                </select>
-              </div>
-
-              {newFolderData.unlockMethod === 'pin' && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Code PIN (4 chiffres)</label>
-                  <input
-                    type="password"
-                    value={newFolderData.pin}
-                    onChange={(e) => setNewFolderData({ ...newFolderData, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                    placeholder="••••"
-                    maxLength={4}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center text-2xl tracking-widest"
-                  />
-                </div>
-              )}
             </div>
 
-            <button
-              onClick={handleCreateFolder}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
-              Créer le dossier
-            </button>
-            <button
-              onClick={() => {
-                setShowCreateFolder(false)
-                setNewFolderData({
-                  name: '',
-                  icon: 'Folder',
-                  color: 'from-blue-500 to-cyan-500',
-                  unlockMethod: 'pin',
-                  pin: '',
-                })
-              }}
-              className="w-full mt-3 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition-all"
-            >
-              Annuler
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateFolder(false)
+                  setNewRecordData({
+                    title: '',
+                    type: 'other',
+                    description: '',
+                  })
+                }}
+                className="flex-1 py-3 border-2 border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreateRecord}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+              >
+                Créer le dossier
+              </button>
+            </div>
+            
+            <p className="text-xs text-slate-500 text-center mt-4">
+              Vous pourrez ajouter des fichiers (PDF, images) après la création
+            </p>
           </div>
         </div>
       )}
@@ -782,22 +703,30 @@ export default function DashboardPage() {
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
           <div className="bg-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Ajouter un document</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
+                <FolderPlus className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Nouveau dossier médical</h2>
+                <p className="text-sm text-slate-600">Créez un dossier (avec ou sans fichier initial)</p>
+              </div>
+            </div>
             
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Titre du document</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Titre du dossier *</label>
                 <input
                   type="text"
                   value={uploadData.title}
                   onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
-                  placeholder="Ex: Analyses sanguines"
+                  placeholder="Ex: Analyses sanguines 2024"
                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Type de document</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Type de dossier *</label>
                 <select
                   value={uploadData.type}
                   onChange={(e) => setUploadData({ ...uploadData, type: e.target.value as DocumentType })}
@@ -812,7 +741,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Médecin prescripteur</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Médecin (optionnel)</label>
                 <input
                   type="text"
                   value={uploadData.doctor}
@@ -823,23 +752,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Dossier (optionnel)</label>
-                <select
-                  value={uploadData.folderId}
-                  onChange={(e) => setUploadData({ ...uploadData, folderId: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                >
-                  <option value="">Aucun dossier</option>
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Fichier</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Fichier initial (optionnel)</label>
                 <input
                   type="file"
                   onChange={handleFileSelect}
@@ -858,7 +771,7 @@ export default function DashboardPage() {
               onClick={handleUploadDocument}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
-              Ajouter le document
+              Créer le dossier
             </button>
             <button
               onClick={() => {

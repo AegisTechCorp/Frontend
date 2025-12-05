@@ -41,7 +41,7 @@ export function Sidebar({
 
   const dashboardItems: SidebarItem[] = [
     { id: 'overview', icon: Activity, label: 'Vue d\'ensemble' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
+    { id: 'documents', icon: FileText, label: 'Dossiers' },
   ]
 
   const mainPages: SidebarItem[] = [
