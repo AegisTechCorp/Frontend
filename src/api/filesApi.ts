@@ -296,3 +296,58 @@ export const getAllFiles = async (): Promise<number> => {
     return 0
   }
 }
+
+/**
+ * Récupérer tous les fichiers avec leurs détails et informations de dossier
+ */
+export const getAllFilesWithDetails = async (): Promise<(UploadedFile & { medicalRecordTitle?: string })[]> => {
+  try {
+    // Récupérer tous les dossiers médicaux
+    const medicalRecordsResponse = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'GET',
+      headers: AuthService.getAuthHeaders(),
+    })
+
+    if (!medicalRecordsResponse.ok) {
+      throw new Error('Erreur lors de la récupération des dossiers')
+    }
+
+    const medicalRecords = await medicalRecordsResponse.json()
+    
+    // Pour chaque dossier, récupérer ses fichiers avec le titre du dossier
+    const filesPromises = medicalRecords.map(async (record: any) => {
+      try {
+        const filesResponse = await fetch(
+          `${API_BASE_URL}/files/medical-records/${record.id}`,
+          {
+            method: 'GET',
+            headers: AuthService.getAuthHeaders(),
+          }
+        )
+        
+        if (filesResponse.ok) {
+          const files: UploadedFile[] = await filesResponse.json()
+          // Ajouter le titre du dossier à chaque fichier
+          return files.map(file => ({
+            ...file,
+            medicalRecordTitle: record.title
+          }))
+        }
+        return []
+      } catch {
+        return []
+      }
+    })
+
+    const filesArrays = await Promise.all(filesPromises)
+    // Aplatir le tableau de tableaux et trier par date (plus récent en premier)
+    const allFiles = filesArrays.flat().sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    
+    return allFiles
+  } catch (error) {
+    console.error('Erreur lors de la récupération des fichiers:', error)
+    return []
+  }
+}

@@ -21,6 +21,7 @@ export type Document = {
   encryptedData?: string
   recordType?: string
   metadata?: Record<string, any>
+  color?: string
 }
 
 export type SecureFolder = {
@@ -55,6 +56,7 @@ export type CreateMedicalRecordData = {
   title: string
   type: DocumentType
   description?: string
+  color?: string
 }
 
 export type UploadDocumentData = {
@@ -63,6 +65,7 @@ export type UploadDocumentData = {
   doctor: string
   folderId?: string
   file: File
+  color?: string
 }
 
 export type UnlockFolderResponse = {
@@ -132,6 +135,7 @@ export const createMedicalRecord = async (recordData: CreateMedicalRecordData) =
         recordType: mapDocumentTypeToRecordType(recordData.type),
         metadata: {
           createdAt: new Date().toISOString(),
+          color: recordData.color || 'blue',
         },
       }),
     })
@@ -251,6 +255,7 @@ export const getDocuments = async (): Promise<Document[]> => {
         encryptedData: record.encryptedData,
         recordType: record.recordType,
         metadata: record.metadata,
+        color: record.metadata?.color || 'blue',
       }
     }))
     
@@ -336,6 +341,7 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
           doctor: documentData.doctor,
           appointmentDate: new Date().toISOString().split('T')[0],
           size: `${(documentData.file.size / 1024).toFixed(2)} KB`,
+          color: documentData.color || 'blue',
         },
       }),
     })

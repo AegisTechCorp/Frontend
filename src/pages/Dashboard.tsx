@@ -33,6 +33,7 @@ import {
   type DashboardStats,
   type DocumentType,
 } from "../api/dashboardApi"
+import { getAllFilesWithDetails, type UploadedFile } from "../api/filesApi"
 import { Layout } from "../components/Layout"
 
 export default function DashboardPage() {
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     title: '',
     type: 'autre' as DocumentType,
     description: '',
+    color: 'blue' as string,
   })
   
   const [uploadData, setUploadData] = useState({
@@ -56,12 +58,14 @@ export default function DashboardPage() {
     doctor: '',
     folderId: '',
     file: null as File | null,
+    color: 'blue' as string,
   })
   
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [filesCount, setFilesCount] = useState<Record<string, number>>({})
+  const [allFiles, setAllFiles] = useState<(UploadedFile & { medicalRecordTitle?: string })[]>([])
   
   const tabLabels: Record<string, string> = {
     overview: 'Vue d\'ensemble',
@@ -71,6 +75,17 @@ export default function DashboardPage() {
     allergies: 'Allergies',
     history: 'Historique',
   }
+
+  const colorOptions = [
+    { name: 'Bleu', value: 'blue', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Vert', value: 'green', gradient: 'from-green-500 to-emerald-500' },
+    { name: 'Violet', value: 'purple', gradient: 'from-purple-500 to-pink-500' },
+    { name: 'Orange', value: 'orange', gradient: 'from-orange-500 to-red-500' },
+    { name: 'Rose', value: 'pink', gradient: 'from-pink-500 to-rose-500' },
+    { name: 'Indigo', value: 'indigo', gradient: 'from-indigo-500 to-purple-500' },
+    { name: 'Jaune', value: 'yellow', gradient: 'from-yellow-500 to-orange-500' },
+    { name: 'Gris', value: 'gray', gradient: 'from-slate-500 to-slate-600' },
+  ]
 
   useEffect(() => {
     loadDashboardData()
@@ -83,6 +98,7 @@ export default function DashboardPage() {
       const results = await Promise.allSettled([
         getDashboardStats(),
         getDocuments(),
+        getAllFilesWithDetails(),
       ])
 
       if (results[0].status === 'fulfilled') setStats(results[0].value)
@@ -104,6 +120,9 @@ export default function DashboardPage() {
         }))
         
         setFilesCount(counts)
+      }
+      if (results[2].status === 'fulfilled') {
+        setAllFiles(results[2].value)
       }
     } catch (err) {
       console.error('Erreur lors du chargement:', err)
@@ -165,6 +184,7 @@ export default function DashboardPage() {
           title: '',
           type: 'other',
           description: '',
+          color: 'blue',
         })
         await loadDashboardData()
       } else {
@@ -189,6 +209,7 @@ export default function DashboardPage() {
           title: uploadData.title,
           type: uploadData.type,
           description: uploadData.doctor ? `Médecin: ${uploadData.doctor}` : '',
+          color: uploadData.color,
         })
         
         if (result.success) {
@@ -199,6 +220,7 @@ export default function DashboardPage() {
             doctor: '',
             folderId: '',
             file: null,
+            color: 'blue',
           })
           await loadDashboardData()
         } else {
@@ -212,6 +234,7 @@ export default function DashboardPage() {
           doctor: uploadData.doctor || 'Non spécifié',
           folderId: uploadData.folderId || undefined,
           file: uploadData.file,
+          color: uploadData.color,
         })
         
         if (result.success) {
@@ -222,6 +245,7 @@ export default function DashboardPage() {
             doctor: '',
             folderId: '',
             file: null,
+            color: 'blue',
           })
           await loadDashboardData()
         } else {
@@ -282,6 +306,11 @@ export default function DashboardPage() {
       default:
         return "from-slate-500 to-slate-600"
     }
+  }
+
+  const getColorGradient = (color: string) => {
+    const colorOption = colorOptions.find(opt => opt.value === color)
+    return colorOption?.gradient || 'from-blue-500 to-cyan-500'
   }
 
   const displayStats = [
@@ -500,7 +529,7 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <div className={`w-12 h-12 bg-gradient-to-br ${getColorGradient(doc.color || 'blue')} rounded-xl flex items-center justify-center flex-shrink-0`}>
                             <Folder className="w-6 h-6 text-white" />
                           </div>
                         </div>
@@ -516,6 +545,70 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Section Tous les fichiers */}
+              {allFiles.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg lg:text-xl font-bold text-slate-900 flex items-center gap-2">
+                      <Files className="w-5 h-5 text-blue-600" />
+                      Tous les fichiers
+                    </h2>
+                    <span className="text-sm text-slate-500">{allFiles.length} fichier{allFiles.length > 1 ? 's' : ''}</span>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="divide-y divide-slate-100">
+                      {allFiles.slice(0, 10).map((file, i) => (
+                        <div
+                          key={file.id}
+                          onClick={() => navigate(`/document/${file.medicalRecordId}`)}
+                          className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                          style={{ animation: `fadeIn 0.5s ease-out ${i * 0.05}s both` }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                              <Lock className="w-5 h-5 text-white" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-slate-900 truncate">Fichier chiffré</h4>
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                  {file.medicalRecordTitle}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-slate-600">
+                                <span className="font-medium">
+                                  {(file.originalSize / 1024).toFixed(1)} KB
+                                </span>
+                                <span className="text-gray-400">•</span>
+                                <span>{file.mimeType}</span>
+                                {file.doctorName && (
+                                  <>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-blue-600">Dr. {file.doctorName}</span>
+                                  </>
+                                )}
+                                <span className="text-gray-400">•</span>
+                                <span>{new Date(file.createdAt).toLocaleDateString('fr-FR')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {allFiles.length > 10 && (
+                      <div className="p-4 bg-slate-50 text-center">
+                        <p className="text-sm text-slate-600">
+                          Et {allFiles.length - 10} fichier{allFiles.length - 10 > 1 ? 's' : ''} de plus...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {}
               <div 
@@ -668,6 +761,36 @@ export default function DashboardPage() {
                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Couleur du dossier</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {colorOptions.map((colorOpt) => (
+                    <button
+                      key={colorOpt.value}
+                      type="button"
+                      onClick={() => setNewRecordData({ ...newRecordData, color: colorOpt.value })}
+                      className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        newRecordData.color === colorOpt.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 bg-gradient-to-br ${colorOpt.gradient} rounded-lg flex items-center justify-center`}>
+                        <Folder className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-xs font-medium text-slate-700">{colorOpt.name}</span>
+                      {newRecordData.color === colorOpt.value && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -678,6 +801,7 @@ export default function DashboardPage() {
                     title: '',
                     type: 'other',
                     description: '',
+                    color: 'blue',
                   })
                 }}
                 className="flex-1 py-3 border-2 border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-all"
@@ -765,6 +889,36 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Couleur du dossier</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {colorOptions.map((colorOpt) => (
+                    <button
+                      key={colorOpt.value}
+                      type="button"
+                      onClick={() => setUploadData({ ...uploadData, color: colorOpt.value })}
+                      className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        uploadData.color === colorOpt.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 bg-gradient-to-br ${colorOpt.gradient} rounded-lg flex items-center justify-center`}>
+                        <Folder className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-xs font-medium text-slate-700">{colorOpt.name}</span>
+                      {uploadData.color === colorOpt.value && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <button
@@ -773,7 +927,7 @@ export default function DashboardPage() {
             >
               Créer le dossier
             </button>
-            <button
+              <button
               onClick={() => {
                 setShowUploadModal(false)
                 setUploadData({
@@ -782,6 +936,7 @@ export default function DashboardPage() {
                   doctor: '',
                   folderId: '',
                   file: null,
+                  color: 'blue',
                 })
               }}
               className="w-full mt-3 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition-all"
