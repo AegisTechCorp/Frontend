@@ -13,6 +13,7 @@ export type UploadedFile = {
   originalSize: number
   encryptedSize: number
   filepath: string
+  doctorName?: string
   createdAt: string
   updatedAt: string
 }
@@ -98,7 +99,8 @@ async function decryptFile(
 
 export const uploadEncryptedFile = async (
   medicalRecordId: string,
-  file: File
+  file: File,
+  doctorName?: string
 ): Promise<{ success: boolean; file?: UploadedFile; error?: string }> => {
   try {
 
@@ -117,6 +119,9 @@ export const uploadEncryptedFile = async (
     formData.append('encryptedFilename', encryptedFilename)
     formData.append('mimeType', file.type || 'application/octet-stream')
     formData.append('originalSize', file.size.toString())
+    if (doctorName) {
+      formData.append('doctorName', doctorName)
+    }
 
     const token = AuthService.getToken()
     const headers: Record<string, string> = {}
@@ -241,5 +246,108 @@ export const deleteFile = async (
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors de la suppression',
     }
+  }
+}
+
+
+/**
+ * Récupérer tous les fichiers de tous les dossiers médicaux de l'utilisateur
+ * Pour compter le nombre total de documents (fichiers)
+ */
+export const getAllFiles = async (): Promise<number> => {
+  try {
+    // Récupérer tous les dossiers médicaux
+    const medicalRecordsResponse = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'GET',
+      headers: AuthService.getAuthHeaders(),
+    })
+
+    if (!medicalRecordsResponse.ok) {
+      throw new Error('Erreur lors de la récupération des dossiers')
+    }
+
+    const medicalRecords = await medicalRecordsResponse.json()
+    
+    // Pour chaque dossier, récupérer ses fichiers
+    const fileCountPromises = medicalRecords.map(async (record: any) => {
+      try {
+        const filesResponse = await fetch(
+          `${API_BASE_URL}/files/medical-records/${record.id}`,
+          {
+            method: 'GET',
+            headers: AuthService.getAuthHeaders(),
+          }
+        )
+        
+        if (filesResponse.ok) {
+          const files = await filesResponse.json()
+          return files.length
+        }
+        return 0
+      } catch {
+        return 0
+      }
+    })
+
+    const fileCounts = await Promise.all(fileCountPromises)
+    return fileCounts.reduce((sum, count) => sum + count, 0)
+  } catch (error) {
+    console.error('Erreur lors du comptage des fichiers:', error)
+    return 0
+  }
+}
+
+/**
+ * Récupérer tous les fichiers avec leurs détails et informations de dossier
+ */
+export const getAllFilesWithDetails = async (): Promise<(UploadedFile & { medicalRecordTitle?: string })[]> => {
+  try {
+    // Récupérer tous les dossiers médicaux
+    const medicalRecordsResponse = await fetch(`${API_BASE_URL}/medical-records`, {
+      method: 'GET',
+      headers: AuthService.getAuthHeaders(),
+    })
+
+    if (!medicalRecordsResponse.ok) {
+      throw new Error('Erreur lors de la récupération des dossiers')
+    }
+
+    const medicalRecords = await medicalRecordsResponse.json()
+    
+    // Pour chaque dossier, récupérer ses fichiers avec le titre du dossier
+    const filesPromises = medicalRecords.map(async (record: any) => {
+      try {
+        const filesResponse = await fetch(
+          `${API_BASE_URL}/files/medical-records/${record.id}`,
+          {
+            method: 'GET',
+            headers: AuthService.getAuthHeaders(),
+          }
+        )
+        
+        if (filesResponse.ok) {
+          const files: UploadedFile[] = await filesResponse.json()
+          // Ajouter le titre du dossier à chaque fichier
+          return files.map(file => ({
+            ...file,
+            medicalRecordTitle: record.title
+          }))
+        }
+        return []
+      } catch {
+        return []
+      }
+    })
+
+    const filesArrays = await Promise.all(filesPromises)
+    // Aplatir le tableau de tableaux et trier par date (plus récent en premier)
+    const allFiles = filesArrays.flat().sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    
+    return allFiles
+  } catch (error) {
+    console.error('Erreur lors de la récupération des fichiers:', error)
+    return []
   }
 }
