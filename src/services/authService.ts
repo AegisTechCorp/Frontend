@@ -14,7 +14,10 @@ export interface User {
 export interface AuthResponse {
   token: string
   user: User
-  vaultSalt?: string
+  authSalt?: string
+  requires2FA?: boolean
+  tempToken?: string
+  message?: string
 }
 
 export interface LoginCredentials {
@@ -61,10 +64,10 @@ class AuthService {
     }
 
     const result = await response.json()
-    
+
     this.setAuth(result.user, result.accessToken)
-    
-    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
+
+    return { token: result.accessToken, user: result.user, authSalt: result.authSalt }
   }
 
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -88,18 +91,62 @@ class AuthService {
 
     const result = await response.json()
 
+    // Si 2FA requis, retourner le tempToken sans se connecter
+    if (result.requires2FA) {
+      return {
+        token: '',
+        user: {} as User,
+        requires2FA: true,
+        tempToken: result.tempToken,
+        message: result.message
+      }
+    }
+
+    // Login normal sans 2FA
     this.setAuth(result.user, result.accessToken)
-    
-    const masterKey = await deriveMasterKey(credentials.password, credentials.email, result.vaultSalt)
+
+    const masterKey = await deriveMasterKey(credentials.password, credentials.email, result.authSalt)
     KeyManager.setMasterKey(masterKey)
-    
-    return { token: result.accessToken, user: result.user, vaultSalt: result.vaultSalt }
+
+    return { token: result.accessToken, user: result.user, authSalt: result.authSalt }
   }
 
   static logout(): void {
     KeyManager.clearMasterKey()
     localStorage.removeItem(this.USER_KEY)
     localStorage.removeItem(this.TOKEN_KEY)
+  }
+
+  static async verify2FALogin(tempToken: string, code: string, email: string, password: string): Promise<AuthResponse> {
+    console.log('🔐 Vérification 2FA avec code:', code)
+    
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        tempToken,
+        token: code,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Code 2FA invalide')
+    }
+
+    const result = await response.json()
+    console.log('✅ 2FA validé, résultat:', result)
+
+    this.setAuth(result.user, result.accessToken)
+
+    // Dériver la masterKey avec le authSalt retourné après validation 2FA
+    const masterKey = await deriveMasterKey(password, email, result.authSalt)
+    KeyManager.setMasterKey(masterKey)
+
+    return { token: result.accessToken, user: result.user, authSalt: result.authSalt }
   }
 
   static getToken(): string | null {
