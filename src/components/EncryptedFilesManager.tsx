@@ -18,7 +18,7 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
     const loadFiles = async () => {
 
       if (isLoadingRef.current) return
-      
+
       try {
         isLoadingRef.current = true
         setLoading(true)
@@ -39,6 +39,12 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [doctorName, setDoctorName] = useState('')
+  const [encryptFile, setEncryptFile] = useState(false)
+  const [filePassword, setFilePassword] = useState('')
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [downloadPassword, setDownloadPassword] = useState('')
+  const [fileToDownload, setFileToDownload] = useState<UploadedFile | null>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -55,13 +61,29 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
       setUploading(true)
       setError(null)
 
-      const result = await uploadEncryptedFile(medicalRecordId, selectedFile, doctorName || 'Non spécifié')
-      
+      console.log('📤 Upload du fichier:', {
+        filename: selectedFile.name,
+        encryptFile,
+        hasPassword: !!filePassword
+      })
+
+      const result = await uploadEncryptedFile(
+        medicalRecordId,
+        selectedFile,
+        doctorName || 'Non spécifié',
+        encryptFile,
+        filePassword
+      )
+
+      console.log('✅ Résultat upload:', result)
+
       if (result.success && result.file) {
         setFiles([...files, result.file])
         setShowUploadModal(false)
         setSelectedFile(null)
         setDoctorName('')
+        setEncryptFile(false)
+        setFilePassword('')
         onFilesChange?.()
       } else {
         setError(result.error || 'Erreur lors de l\'upload')
@@ -74,9 +96,41 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
   }
 
   const handleDownload = async (file: UploadedFile) => {
-    const result = await downloadEncryptedFile(file.id, file.encryptedFilename, file.mimeType)
-    if (!result.success) {
-      setError(result.error || 'Erreur lors du téléchargement')
+    console.log('🔍 Téléchargement du fichier:', { id: file.id, isEncrypted: file.isEncrypted, salt: file.salt })
+
+    // Vérifier explicitement si le fichier est chiffré (zero-knowledge)
+    if (file.isEncrypted === true && file.salt) {
+      // Fichier chiffré avec mot de passe unique : demander le mot de passe
+      console.log('🔐 Fichier en mode zero-knowledge, demande du mot de passe')
+      setFileToDownload(file)
+      setShowPasswordModal(true)
+    } else {
+      // Fichier en mode centralisé : téléchargement direct avec masterKey
+      console.log('📁 Fichier en mode centralisé, téléchargement direct')
+      const result = await downloadEncryptedFile(file.id, file)
+      if (!result.success) {
+        setError(result.error || 'Erreur lors du téléchargement')
+      }
+    }
+  }
+
+  const handlePasswordDownload = async () => {
+    if (!fileToDownload || !downloadPassword) return
+
+    try {
+      const result = await downloadEncryptedFile(fileToDownload.id, fileToDownload, downloadPassword)
+
+      if (result.success) {
+        setShowPasswordModal(false)
+        setFileToDownload(null)
+        setDownloadPassword('')
+      } else if (result.requiresPassword) {
+        setError('Mot de passe requis')
+      } else {
+        setError(result.error || 'Erreur lors du téléchargement')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du téléchargement')
     }
   }
 
@@ -187,8 +241,10 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
                   {/* Informations du fichier */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <h4 className="font-semibold text-gray-900 truncate">Fichier chiffré</h4>
+                      {file.isEncrypted && <Lock className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                      <h4 className="font-semibold text-gray-900 truncate">
+                        {file.isEncrypted ? 'Fichier chiffré' : (file.originalFilename || 'Document')}
+                      </h4>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                       <span className="font-medium">{formatFileSize(file.originalSize)}</span>
@@ -264,6 +320,41 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
                 />
               </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={encryptFile}
+                    onChange={(e) => setEncryptFile(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm font-semibold text-gray-900">Chiffrer ce fichier avec un mot de passe unique</span>
+                    <p className="text-xs text-gray-500 mt-0.5">Mode zero-knowledge : le serveur ne pourra jamais accéder au contenu</p>
+                  </div>
+                </label>
+              </div>
+
+              {encryptFile && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                  <label className="block text-sm font-semibold text-blue-900 mb-2">
+                    <Lock className="w-4 h-4 inline mr-1" />
+                    Mot de passe unique pour ce fichier
+                  </label>
+                  <input
+                    type="password"
+                    value={filePassword}
+                    onChange={(e) => setFilePassword(e.target.value)}
+                    placeholder="Entrez un mot de passe fort"
+                    className="w-full px-4 py-3 bg-white border-2 border-blue-300 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+                    required={encryptFile}
+                  />
+                  <p className="text-xs text-blue-700 mt-2">
+                    ⚠️ Ce mot de passe sera nécessaire pour déchiffrer le fichier. Ne le perdez pas !
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -272,6 +363,8 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
                   setShowUploadModal(false)
                   setSelectedFile(null)
                   setDoctorName('')
+                  setEncryptFile(false)
+                  setFilePassword('')
                 }}
                 className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                 disabled={uploading}
@@ -280,10 +373,68 @@ export function EncryptedFilesManager({ medicalRecordId, onFilesChange }: Encryp
               </button>
               <button
                 onClick={handleFileUpload}
-                disabled={uploading}
+                disabled={uploading || (encryptFile && !filePassword)}
                 className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
               >
                 {uploading ? 'Upload...' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de demande de mot de passe pour download */}
+      {showPasswordModal && fileToDownload && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Fichier chiffré</h3>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-blue-900">
+                    {fileToDownload.originalFilename || 'Fichier chiffré'}
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Ce fichier est protégé par un mot de passe unique. Entrez le mot de passe pour le déchiffrer.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Mot de passe du fichier
+                </label>
+                <input
+                  type="password"
+                  value={downloadPassword}
+                  onChange={(e) => setDownloadPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handlePasswordDownload()}
+                  placeholder="Entrez le mot de passe"
+                  autoFocus
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false)
+                  setFileToDownload(null)
+                  setDownloadPassword('')
+                }}
+                className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handlePasswordDownload}
+                disabled={!downloadPassword}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                Télécharger
               </button>
             </div>
           </div>

@@ -509,7 +509,7 @@ export default function DashboardPage() {
               {}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">Dossiers sécurisés</h2>
+                  <h2 className="text-lg lg:text-xl font-bold text-slate-900">Mes dossiers médicaux</h2>
                   <button
                     onClick={() => setShowUploadModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all text-sm"
@@ -532,10 +532,6 @@ export default function DashboardPage() {
                           <div className={`w-12 h-12 bg-gradient-to-br ${getColorGradient(doc.color || 'blue')} rounded-xl flex items-center justify-center flex-shrink-0`}>
                             <Folder className="w-6 h-6 text-white" />
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-green-600">
-                          <Lock className="w-4 h-4" />
-                          <span>Chiffré</span>
                         </div>
                       </div>
 
@@ -573,7 +569,10 @@ export default function DashboardPage() {
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-slate-900 truncate">Fichier chiffré</h4>
+                                {file.isEncrypted && <Lock className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                <h4 className="font-semibold text-slate-900 truncate">
+                                  {file.isEncrypted ? 'Fichier chiffré' : (file.originalFilename || 'Document médical')}
+                                </h4>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                                   {file.medicalRecordTitle}
                                 </span>

@@ -118,8 +118,7 @@ export const createMedicalRecord = async (recordData: CreateMedicalRecordData) =
       throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
     }
 
-    // Chiffrer le titre et la description
-    const encryptedTitle = await encryptData(recordData.title, masterKey)
+    // Chiffrer seulement la description (le titre reste en clair)
     const encryptedData = await encryptData({
       title: recordData.title,
       description: recordData.description || '',
@@ -131,7 +130,7 @@ export const createMedicalRecord = async (recordData: CreateMedicalRecordData) =
       headers: AuthService.getAuthHeaders(),
       body: JSON.stringify({
         encryptedData,
-        encryptedTitle,
+        encryptedTitle: recordData.title, // Titre en clair
         recordType: mapDocumentTypeToRecordType(recordData.type),
         metadata: {
           createdAt: new Date().toISOString(),
@@ -222,25 +221,10 @@ export const getDocuments = async (): Promise<Document[]> => {
 
     const records = await response.json()
 
-    const masterKey = KeyManager.getMasterKey()
+    const documents = records.map((record: any) => {
+      // Le titre est maintenant stocké en clair dans encryptedTitle
+      const title = record.encryptedTitle || 'Document médical'
 
-    const documents = await Promise.all(records.map(async (record: any) => {
-      let title = 'Document médical'
-
-      if (record.encryptedTitle && masterKey) {
-        try {
-          if (typeof record.encryptedTitle !== 'string') {
-            throw new Error('Invalid encrypted title format')
-          }
-          
-          const decryptedTitle = await decryptData(record.encryptedTitle, masterKey)
-          if (decryptedTitle) {
-            title = decryptedTitle
-          }
-        } catch (error) {
-        }
-      }
-      
       return {
         id: record.id,
         title,
@@ -257,7 +241,7 @@ export const getDocuments = async (): Promise<Document[]> => {
         metadata: record.metadata,
         color: record.metadata?.color || 'blue',
       }
-    }))
+    })
     
     return documents
   } catch (error) {
@@ -327,15 +311,14 @@ export const uploadDocument = async (documentData: UploadDocumentData) => {
       fileContent: fileContent, // Contenu réel en Base64
       type: documentData.type,
     }, masterKey)
-    
-    const encryptedTitle = await encryptData(documentData.title, masterKey)
-    
+
+    // Le titre reste en clair
     const response = await fetch(`${API_BASE_URL}/medical-records`, {
       method: 'POST',
       headers: AuthService.getAuthHeaders(),
       body: JSON.stringify({
         encryptedData,
-        encryptedTitle,
+        encryptedTitle: documentData.title, // Titre en clair
         recordType: mapDocumentTypeToRecordType(documentData.type),
         metadata: {
           doctor: documentData.doctor,
@@ -386,8 +369,8 @@ export const downloadDocument = async (documentId: string) => {
       throw new Error('Échec du déchiffrement des données')
     }
     const decryptedData = JSON.parse(decryptedDataStr)
-    const decryptedTitleStr = await decryptData(record.encryptedTitle || '', masterKey)
-    const decryptedTitle = decryptedTitleStr || 'document'
+    // Le titre est maintenant stocké en clair
+    const decryptedTitle = record.encryptedTitle || 'document'
 
     // Vérifier si c'est un nouveau format avec fileContent ou ancien format
     if (decryptedData.fileContent) {

@@ -1,5 +1,5 @@
 import AuthService from '../services/authService'
-import { encryptData, decryptData } from '../utils/crypto'
+import { encryptData, decryptData, generateFileSalt, encryptFileWithPassword, decryptFileWithPassword, wipeMemory } from '../utils/crypto'
 import { KeyManager } from '../utils/keyManager'
 import { safeBase64Decode } from '../utils/safeBase64'
 
@@ -8,7 +8,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/
 export type UploadedFile = {
   id: string
   medicalRecordId: string
-  encryptedFilename: string
+  isEncrypted: boolean
+  salt?: string
+  originalFilename?: string
+  encryptedFilename?: string
   mimeType: string
   originalSize: number
   encryptedSize: number
@@ -100,27 +103,67 @@ async function decryptFile(
 export const uploadEncryptedFile = async (
   medicalRecordId: string,
   file: File,
-  doctorName?: string
+  doctorName?: string,
+  shouldEncrypt: boolean = false,
+  filePassword?: string
 ): Promise<{ success: boolean; file?: UploadedFile; error?: string }> => {
+  let passwordCopy = filePassword; // Copie pour pouvoir wiper
+
   try {
-
-    const masterKey = KeyManager.getMasterKey()
-    if (!masterKey) {
-      throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
-    }
-
-    console.log('🔐 Chiffrement du fichier...')
-    const encryptedBlob = await encryptFile(file, masterKey)
-
-    const encryptedFilename = await encryptData(file.name, masterKey)
-
     const formData = new FormData()
-    formData.append('file', encryptedBlob, 'encrypted_file')
-    formData.append('encryptedFilename', encryptedFilename)
-    formData.append('mimeType', file.type || 'application/octet-stream')
-    formData.append('originalSize', file.size.toString())
-    if (doctorName) {
-      formData.append('doctorName', doctorName)
+
+    if (shouldEncrypt && passwordCopy) {
+      // MODE ZERO-KNOWLEDGE : Chiffrement avec mot de passe unique (contenu + nom)
+      console.log('🔐 Chiffrement du fichier et du nom avec mot de passe unique...')
+
+      // 1. Générer un salt avec Argon2
+      const salt = generateFileSalt()
+
+      // 2. Chiffrer le fichier avec MDP + Salt
+      const encryptedBlob = await encryptFileWithPassword(file, passwordCopy, salt)
+
+      // 3. Chiffrer aussi le nom du fichier avec le même mot de passe
+      const encryptedFilename = await encryptFileWithPassword(
+        new File([file.name], 'filename', { type: 'text/plain' }),
+        passwordCopy,
+        salt
+      )
+      const encryptedFilenameText = await encryptedFilename.text()
+
+      // 4. Préparer les données pour l'envoi
+      formData.append('file', encryptedBlob, 'encrypted_file')
+      formData.append('isEncrypted', '1') // '1' pour true (évite le problème de Boolean('false') = true)
+      formData.append('salt', salt)
+      formData.append('encryptedFilename', encryptedFilenameText) // Nom chiffré pour mode zero-knowledge
+      formData.append('mimeType', file.type || 'application/octet-stream')
+      formData.append('originalSize', file.size.toString())
+      if (doctorName) {
+        formData.append('doctorName', doctorName)
+      }
+
+      // 5. Wiper le mot de passe de la RAM
+      wipeMemory(passwordCopy)
+      passwordCopy = ''
+
+      console.log('✅ Fichier et nom chiffrés, mot de passe effacé de la mémoire')
+    } else {
+      // MODE CENTRALISÉ : Chiffrement avec masterKey, nom en clair
+      const masterKey = KeyManager.getMasterKey()
+      if (!masterKey) {
+        throw new Error('Clé de chiffrement non disponible. Veuillez vous reconnecter.')
+      }
+
+      console.log('🔐 Chiffrement du fichier avec la masterKey (nom en clair)...')
+      const encryptedBlob = await encryptFile(file, masterKey)
+
+      formData.append('file', encryptedBlob, 'encrypted_file')
+      // Ne pas envoyer isEncrypted si false (undefined sera traité comme false par le backend)
+      formData.append('originalFilename', file.name) // Nom en clair pour mode centralisé
+      formData.append('mimeType', file.type || 'application/octet-stream')
+      formData.append('originalSize', file.size.toString())
+      if (doctorName) {
+        formData.append('doctorName', doctorName)
+      }
     }
 
     const token = AuthService.getToken()
@@ -128,7 +171,7 @@ export const uploadEncryptedFile = async (
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
-    
+
     const response = await fetch(
       `${API_BASE_URL}/files/medical-records/${medicalRecordId}/upload`,
       {
@@ -144,12 +187,17 @@ export const uploadEncryptedFile = async (
     }
 
     const uploadedFile = await response.json()
-    
+
     return { success: true, file: uploadedFile }
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors de l\'upload',
+    }
+  } finally {
+    // S'assurer que le password est bien wipé même en cas d'erreur
+    if (passwordCopy) {
+      wipeMemory(passwordCopy)
     }
   }
 }
@@ -181,16 +229,13 @@ export const getFilesByMedicalRecord = async (
 
 export const downloadEncryptedFile = async (
   fileId: string,
-  filename: string,
-  mimeType: string
-): Promise<{ success: boolean; error?: string }> => {
+  file: UploadedFile,
+  filePassword?: string
+): Promise<{ success: boolean; error?: string; requiresPassword?: boolean }> => {
+  let passwordCopy = filePassword; // Copie pour pouvoir wiper
+
   try {
-
-    const masterKey = KeyManager.getMasterKey()
-    if (!masterKey) {
-      throw new Error('Clé de chiffrement non disponible')
-    }
-
+    // Récupérer le fichier depuis le serveur
     const response = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
       method: 'GET',
       headers: AuthService.getAuthHeaders(),
@@ -201,26 +246,99 @@ export const downloadEncryptedFile = async (
     }
 
     const encryptedBlob = await response.blob()
-    
-    const decryptedBlob = await decryptFile(encryptedBlob, masterKey, mimeType)
 
-    const decryptedFilename = await decryptData(filename, masterKey)
-    const finalFilename = decryptedFilename || 'fichier_téléchargé'
+    if (file.isEncrypted && file.salt) {
+      // MODE ZERO-KNOWLEDGE : Déchiffrement avec mot de passe unique
 
-    const url = window.URL.createObjectURL(decryptedBlob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = finalFilename
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+      if (!passwordCopy) {
+        // Le mot de passe est requis
+        return { success: false, requiresPassword: true }
+      }
 
-    return { success: true }
+      console.log('🔐 Déchiffrement du fichier et du nom avec le mot de passe...')
+
+      try {
+        // 1. Déchiffrer le contenu du fichier avec MDP + Salt
+        const decryptedBlob = await decryptFileWithPassword(
+          encryptedBlob,
+          passwordCopy,
+          file.salt,
+          file.mimeType
+        )
+
+        // 2. Déchiffrer le nom du fichier si disponible
+        let filename = 'fichier_téléchargé'
+        if (file.encryptedFilename) {
+          try {
+            // Le nom chiffré est stocké comme un blob base64
+            const encryptedFilenameBlob = new Blob([file.encryptedFilename])
+            const decryptedFilenameBlob = await decryptFileWithPassword(
+              encryptedFilenameBlob,
+              passwordCopy,
+              file.salt,
+              'text/plain'
+            )
+            filename = await decryptedFilenameBlob.text()
+          } catch {
+            console.warn('Impossible de déchiffrer le nom du fichier')
+            filename = 'fichier_téléchargé'
+          }
+        }
+
+        // 3. Télécharger le fichier déchiffré
+        const url = window.URL.createObjectURL(decryptedBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+        console.log('✅ Fichier et nom déchiffrés, mot de passe effacé de la mémoire')
+
+        return { success: true }
+      } catch (decryptError) {
+        throw new Error('Mot de passe incorrect ou fichier corrompu')
+      } finally {
+        // Wiper le mot de passe de la RAM
+        if (passwordCopy) {
+          wipeMemory(passwordCopy)
+          passwordCopy = ''
+        }
+      }
+    } else {
+      // MODE CENTRALISÉ : Déchiffrement avec masterKey, nom en clair
+      const masterKey = KeyManager.getMasterKey()
+      if (!masterKey) {
+        throw new Error('Clé de chiffrement non disponible')
+      }
+
+      const decryptedBlob = await decryptFile(encryptedBlob, masterKey, file.mimeType)
+
+      // Le nom est déjà en clair pour le mode centralisé
+      const filename = file.originalFilename || 'fichier_téléchargé'
+
+      const url = window.URL.createObjectURL(decryptedBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      return { success: true }
+    }
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors du téléchargement',
+    }
+  } finally {
+    // S'assurer que le password est bien wipé même en cas d'erreur
+    if (passwordCopy) {
+      wipeMemory(passwordCopy)
     }
   }
 }
