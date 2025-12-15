@@ -379,17 +379,6 @@ export default function DashboardPage() {
 
                 {}
                 <button 
-                  onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm lg:text-base"
-                  title="Créer un nouveau dossier médical"
-                >
-                  <FolderPlus className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">Nouveau dossier</span>
-                  <span className="sm:hidden">Nouveau</span>
-                </button>
-
-                {}
-                <button 
                   onClick={() => navigate('/notifications')}
                   className="relative p-2 hover:bg-slate-100 rounded-xl transition-all flex-shrink-0"
                 >
