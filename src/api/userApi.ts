@@ -3,6 +3,7 @@ import AuthService from '../services/authService'
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
 export interface UserProfile {
+  twoFactorEnabled?: boolean
   id: string
   email: string
   firstName: string
@@ -87,7 +88,7 @@ export const changePassword = async (data: ChangePasswordData) => {
 
 export const enable2FA = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/2fa/enable`, {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/enable`, {
       method: 'POST',
       headers: AuthService.getAuthHeaders(),
     })
@@ -109,10 +110,10 @@ export const enable2FA = async () => {
 
 export const verify2FA = async (code: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/2fa/verify`, {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
       method: 'POST',
       headers: AuthService.getAuthHeaders(),
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ token: code }),
     })
 
     if (!response.ok) {
@@ -131,7 +132,7 @@ export const verify2FA = async (code: string) => {
 
 export const disable2FA = async (password: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/2fa/disable`, {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
       method: 'POST',
       headers: AuthService.getAuthHeaders(),
       body: JSON.stringify({ password }),

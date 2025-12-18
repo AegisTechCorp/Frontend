@@ -13,8 +13,6 @@ import {
   AlertCircle,
   Loader2,
   Clock,
-  CheckCircle,
-  Shield,
   Lock,
 } from "lucide-react"
 import { getDocumentById, deleteDocument, type Document } from "../api/dashboardApi"
@@ -276,23 +274,6 @@ export default function DocumentDetailPage() {
           </div>
 
           {}
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200 mb-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  Dossier sécurisé
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </h3>
-                <p className="text-slate-700 text-sm leading-relaxed">
-                  Ce dossier médical et tous ses fichiers sont chiffrés de bout en bout avec un algorithme AES-256. Seul vous pouvez les déchiffrer avec votre clé privée. 
-                  Même les administrateurs du système ne peuvent pas accéder au contenu de ce dossier.
-                </p>
-              </div>
-            </div>
-          </div>
 
           {}
           <div className="mb-6">

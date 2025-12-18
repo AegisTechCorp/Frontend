@@ -1,10 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Lock, Smartphone, Shield, AlertTriangle, Key, Eye, EyeOff } from 'lucide-react'
-import { enable2FA, verify2FA, disable2FA, revokeAllSessions, changePassword } from '../api/userApi'
+import { enable2FA, verify2FA, disable2FA, revokeAllSessions, changePassword, getUserProfile } from '../api/userApi'
 import { Layout } from '../components/Layout'
+import QRCodeModal from '../components/QRCodeModal'
 
 export default function Security() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [qrData, setQrData] = useState<{ qrCode: string; secret: string } | null>(null)
+
+  useEffect(() => {
+    const loadUserSecurity = async () => {
+      try {
+        const profile = await getUserProfile()
+        if (profile.twoFactorEnabled !== undefined) {
+          setTwoFactorEnabled(profile.twoFactorEnabled)
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement du profil:', error)
+      }
+    }
+    loadUserSecurity()
+  }, [])
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -19,24 +36,14 @@ export default function Security() {
 
   const handleToggle2FA = async () => {
     if (!twoFactorEnabled) {
-
       const result = await enable2FA()
-      if (result.success) {
-        const code = prompt('QR Code généré ! Entrez le code de vérification de votre application :')
-        if (code) {
-          const verifyResult = await verify2FA(code)
-          if (verifyResult.success) {
-            setTwoFactorEnabled(true)
-            alert('✓ 2FA activée avec succès')
-          } else {
-            alert('❌ ' + verifyResult.error)
-          }
-        }
+      if (result.success && result.qrCode && result.secret) {
+        setQrData({ qrCode: result.qrCode, secret: result.secret })
+        setQrModalOpen(true)
       } else {
         alert('❌ ' + result.error)
       }
     } else {
-
       const password = prompt('Entrez votre mot de passe pour désactiver la 2FA :')
       if (password) {
         const result = await disable2FA(password)
@@ -47,6 +54,18 @@ export default function Security() {
           alert('❌ ' + result.error)
         }
       }
+    }
+  }
+
+  const handleVerifyQRCode = async (code: string) => {
+    const verifyResult = await verify2FA(code)
+    if (verifyResult.success) {
+      setTwoFactorEnabled(true)
+      setQrModalOpen(false)
+      setQrData(null)
+      alert('✓ 2FA activée avec succès')
+    } else {
+      throw new Error(verifyResult.error || 'Code invalide')
     }
   }
 
@@ -355,6 +374,20 @@ export default function Security() {
           </button>
         </div>
       </div>
+
+      {/* Modal QR Code 2FA */}
+      {qrModalOpen && qrData && (
+        <QRCodeModal
+          isOpen={qrModalOpen}
+          onClose={() => {
+            setQrModalOpen(false)
+            setQrData(null)
+          }}
+          onVerify={handleVerifyQRCode}
+          qrCode={qrData.qrCode}
+          secret={qrData.secret}
+        />
+      )}
     </Layout>
   )
 }
