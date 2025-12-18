@@ -1,0 +1,47 @@
+name: PR Validation - Frontend
+
+# Déclenché uniquement sur les Pull Requests
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  typescript-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for TruffleHog
+
+      - name: Scan for Secrets (TruffleHog)
+        if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.sha }}
+          extra_args: --only-verified
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Run ESLint Check
+        run: npm run lint
+
+      - name: Run Unit Tests and Coverage (with threshold check)
+        run: npm run test:coverage -- --coverage.lines=10 --coverage.functions=10 --coverage.branches=3
+
+      - name: Run Build (Compilation Check)
+        run: npm run build
